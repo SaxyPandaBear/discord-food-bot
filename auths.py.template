@@ -1,0 +1,6 @@
+# Reddit Authentication
+reddit_client_id = 'ID'
+reddit_client_secret = 'SECRET'
+
+# Discord Authentication
+discord_token = 'DISCORD TOKEN'
