@@ -5,7 +5,6 @@ import auths
 
 
 client: discord.Client = discord.Client()  # instantiate a new Discord Client
-# TODO: get authentication details for reddit API
 reddit = praw.Reddit(client_id=auths.reddit_client_id,
                      client_secret=auths.reddit_client_secret,
                      user_agent='discord:food_waifu:v0.1')  # instantiate a new Reddit Client
@@ -25,23 +24,29 @@ async def on_message(message: discord.Message):
         if len(msg_contents) < 1:
             await client.send_message(message.channel, bot_description())
             await client.send_message(message.channel, help_message())
-        em = discord.Embed(title='Food',
-                           description='stuff about food',
-                           color=0xFFFFFF)  # testing
-        em.set_image(url='https://i.redd.it/6egiskh8k3101.jpg')
-        await client.send_message(message.channel, embed=em)
-        await client.send_message(message.channel, 'Yummy')
+            return
+        await client.send_message(message.channel, embed=get_hardcoded_embedded())
         # TODO: see how difficult it will be to search for a specific dish
         pass
+
+
+# hard-coded embed object for testing purposes
+def get_hardcoded_embedded():
+    em = discord.Embed(title='Food',
+                       description='stuff about food',
+                       color=0xFFFFFF)  # testing
+    em.set_image(url='https://i.redd.it/6egiskh8k3101.jpg')
+    return em
 
 
 # function that posts a picture to the server once every hour
 async def post_new_picture():
     await client.wait_until_ready()  # doesn't execute until the client is ready
-    # TODO: may opt to print to default text channel to *each* server this bot is active in
-    channel: discord.Channel = discord.Object(id='some channel id')  # TODO: figure out channel ID
     while not client.is_closed:
-        await client.send_message(channel, embed=get_embedded_post())
+        # em = get_embedded_post()  # get a single post, and post it to each server
+        em = get_hardcoded_embedded()  # TODO: test with hardcoded value to get desired format
+        for server in client.servers:  # each server that this bot is active in
+            await client.send_message(server.default_channel(), embed=em)  # post to the default text channel
         await asyncio.sleep(3600)  # once an hour, or rather, once every 3,600 seconds
 
 
@@ -64,7 +69,14 @@ def bot_description():
 
 # returns a formatted string that lists the available functions
 def help_message():
-    return ''
+    return 'Available functions: [ random ]\n' \
+           'Type "$food help [function]" for more details on a specific function and it\'s usage.'
+
+
+# returns a string that details the usage of the 'random' function of the bot
+def help_bot_random():
+    return '[random] => the bot posts an embedded message with a picture of food.\n' \
+           'Example usage: "$food random"'
 
 
 # client.loop.create_task(post_new_picture())  # looped task
