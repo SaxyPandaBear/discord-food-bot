@@ -1,9 +1,17 @@
 Food Waifu
 ===========
 
-Discord bot that posts a picture of food once an hour
+Discord bot that posts a picture of food once an hour.
 
 ### Features
+
+`$food` is the command invoked in order to interact with this bot.
+
+`$food help` prints a description of the bot, as well as lists out options for usage.
+
+`$food random` picks a random picture of food and posts it to the channel.
+
+TODO: investigate how difficult it would be to parse through search results.
 
 TBD
 

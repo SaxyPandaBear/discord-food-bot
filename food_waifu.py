@@ -21,7 +21,10 @@ async def on_message(message: discord.Message):
     if message.author == client.user:
         return  # we want to filter out messages from our bot
     if message.content.startswith('$food'):
-        # await client.send_message(message.channel, 'Received message')  # just for debug purposes
+        msg_contents = message.content.split(' ')[1:]  # ignore the '$food' token in the string
+        if len(msg_contents) < 1:
+            await client.send_message(message.channel, bot_description())
+            await client.send_message(message.channel, help_message())
         em = discord.Embed(title='Food',
                            description='stuff about food',
                            color=0xFFFFFF)  # testing
@@ -35,6 +38,7 @@ async def on_message(message: discord.Message):
 # function that posts a picture to the server once every hour
 async def post_new_picture():
     await client.wait_until_ready()  # doesn't execute until the client is ready
+    # TODO: may opt to print to default text channel to *each* server this bot is active in
     channel: discord.Channel = discord.Object(id='some channel id')  # TODO: figure out channel ID
     while not client.is_closed:
         await client.send_message(channel, embed=get_embedded_post())
@@ -50,6 +54,17 @@ def get_embedded_post():
     em = discord.Embed(title=title, description=description, color=color)
     em.set_image(url='URL of image post goes here')
     return em
+
+
+# returns a formatted string that describes the bot's usage
+def bot_description():
+    return 'This bot posts a picture of food once every hour, to the default text channel.\n' \
+           'Read more about this bot, or contribute to it at https://github.com/SaxyPandaBear/food_waifu'
+
+
+# returns a formatted string that lists the available functions
+def help_message():
+    return ''
 
 
 # client.loop.create_task(post_new_picture())  # looped task
