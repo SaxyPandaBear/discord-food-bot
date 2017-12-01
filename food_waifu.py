@@ -19,22 +19,45 @@ async def on_ready():
 async def on_message(message: discord.Message):
     if message.author == client.user:
         return  # we want to filter out messages from our bot
-    if message.content.startswith('$food'):
-        msg_contents = message.content.split(' ')[1:]  # ignore the '$food' token in the string
-        if len(msg_contents) < 1:
-            await client.send_message(message.channel, bot_description())
+    if not message.content.startswith('$food'):
+        return  # don't process messages without the "$food" tag
+    msg_contents = message.content.split(' ')
+    if len(msg_contents) < 2:
+        msg = bot_description() + '\n' + help_message()  # send 1 concatenation rather than 2 messages
+        await client.send_message(message.channel, msg)
+        return
+    msg_contents = msg_contents[1:]  # ignore the "$food" part of the message
+
+    # "$food help [function]"
+    # if an optional [function] argument is given, the bot prints a description
+    # of that function's usage,
+    # otherwise, it just prints out the generic help text that is printed out
+    # when an unrecognized command is given, or no commands are given.
+    if msg_contents[0] == 'help':
+        # help no longer is a single command usage.
+        # it can be used to get more detailed info on other available functions
+        if len(msg_contents) == 1:  # no args were passed in
             await client.send_message(message.channel, help_message())
-            return
+        else:
+            if msg_contents[1] == 'random':
+                await client.send_message(message.channel, help_bot_random())
+            else:
+                await client.send_message(message.channel, help_message())
+    elif msg_contents[0] == 'random':
         await client.send_message(message.channel, embed=get_hardcoded_embedded())
-        # TODO: see how difficult it will be to search for a specific dish
-        pass
+    else:
+        msg = "Unrecognized operation: '%s'\n" % msg_contents[0]
+        msg += help_message()
+        await client.send_message(message.channel, msg)
+    # TODO: see how difficult it will be to search for a specific dish
+    pass
 
 
 # hard-coded embed object for testing purposes
 def get_hardcoded_embedded():
     em = discord.Embed(title='Food',
                        description='stuff about food',
-                       color=0xFFFFFF)  # testing
+                       color=0xDB5172)
     em.set_image(url='https://i.redd.it/6egiskh8k3101.jpg')
     return em
 
@@ -55,7 +78,7 @@ def get_embedded_post():
     # TODO: determine what data is available when getting a reddit post
     title = 'Try to get Post title here'
     description = 'Try to get link to post here'
-    color = 0xFFFFFF
+    color = 0xDB5172
     em = discord.Embed(title=title, description=description, color=color)
     em.set_image(url='URL of image post goes here')
     return em
