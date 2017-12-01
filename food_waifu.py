@@ -21,7 +21,7 @@ async def on_ready():
 async def on_message(message: discord.Message):
     if message.author == client.user:
         return  # we want to filter out messages from our bot
-    if not message.content.startswith('$food'):
+    if not message.content.startswith('!food'):
         return  # don't process messages without the "$food" tag
     msg_contents = message.content.split(' ')
     if len(msg_contents) < 2:
@@ -104,7 +104,7 @@ def write_id_to_file(post_id):
 # Note: This assumes that the file exists in the same directory as this script
 def get_list_of_subs():
     with open('subreddits.txt', 'r') as file:
-        subs = file.readlines()
+        subs = file.read().splitlines()  # readlines() returns strings with newline characters
     return list(filter(None, subs))  # just for sanity, purge empty strings before returning
 
 
@@ -117,7 +117,7 @@ def get_previous_post_ids():
     except IOError:
         return []
     # if made it this far, no error occurred.
-    ids = file.readlines()
+    ids = file.read().splitlines()  # readlines() returns strings with newline characters
     file.close()  # almost forgot to close the file
     return list(filter(None, ids))  # no empty strings allowed
 
@@ -199,7 +199,7 @@ def get_submission_from_subs(subs, already_posted):
         for submission in reddit.subreddit(subs_list).hot(limit=limit):
             if submission.id not in already_posted:
                 submissions.append(submission)
-        limit += 20  # at some point either we will get rate limited, or we'll find a new post
+        limit *= 2  # at some point either we will get rate limited, or we'll find a new post
     return random_submission(submissions)
 
 
