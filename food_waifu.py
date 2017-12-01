@@ -14,7 +14,7 @@ reddit = praw.Reddit(client_id=auths.reddit_client_id,
 
 @client.event
 async def on_ready():
-    print('Username: %s\nID: %s' % (client.user.name, client.user.id))
+    print('Username: {0}\nID: {1}'.format(client.user.name, client.user.id))
 
 
 @client.event
@@ -46,10 +46,9 @@ async def on_message(message: discord.Message):
             else:
                 await client.send_message(message.channel, help_message())
     elif msg_contents[0] == 'random':
-        await client.send_message(message.channel, embed=get_hardcoded_embedded())
+        await client.send_message(message.channel, embed=get_embedded_post())
     else:
-        msg = "Unrecognized operation: '%s'\n" % msg_contents[0]
-        msg += help_message()
+        msg = "Unrecognized operation: '{0}'\n{1}".format(msg_contents[0], help_message())
         await client.send_message(message.channel, msg)  # opt to send 1 message instead of 2.
     # TODO: see how difficult it will be to search for a specific dish
     pass
@@ -68,8 +67,8 @@ def get_hardcoded_embedded():
 async def post_new_picture():
     await client.wait_until_ready()  # doesn't execute until the client is ready
     while not client.is_closed:
-        # em = get_embedded_post()  # get a single post, and post it to each server
-        em = get_hardcoded_embedded()  # TODO: test with hardcoded value to get desired format
+        em = get_embedded_post()  # get a single post, and post it to each server
+        # em = get_hardcoded_embedded()  # TODO: test with hardcoded value to get desired format
         for server in client.servers:  # each server that this bot is active in
             channel = get_default_text_channel(server)
             await client.send_message(channel, embed=em)  # post to the default text channel
@@ -81,14 +80,46 @@ async def post_new_picture():
 
 # returns a discord.Embed with all of the necessary information for an embedded message
 def get_embedded_post():
-    subs = []
-    ids = []
+    subs = get_list_of_subs()
+    ids = get_previous_post_ids()
+
     submission = get_submission_from_subs(subs, ids)  # TODO: read subs and ids from file
     post = transpose_submission_to_food_post(submission)
     # need to write the id of this post into our file so we don't post it again later
-    ids.append(post.id)
+    write_id_to_file(post.id)
     em = transpose_food_post_to_embed(post)
     return em
+
+
+# takes a Reddit submission ID and writes it to the file of previous post ids used.
+# the 'a' mode for open() will create a new file if it does not already exist,
+# and writes appending to the file as opposed to truncating.
+def write_id_to_file(post_id):
+    with open('post_ids.txt', 'a') as file:
+        file.write('{}\n'.format(post_id))
+
+
+# function that reads from the subreddits.txt file and returns a list of strings that are the read
+# subreddits in the file
+# Note: This assumes that the file exists in the same directory as this script
+def get_list_of_subs():
+    with open('subreddits.txt', 'r') as file:
+        subs = file.readlines()
+    return list(filter(None, subs))  # just for sanity, purge empty strings before returning
+
+
+# function that reads from the post_ids.txt file and returns a list of ids.
+# the ids in the file are Reddit ids for given posts that the bot has already processed and used
+# Note: This assumes that the file exists in the same directory as this script
+def get_previous_post_ids():
+    try:
+        file = open('post_ids.txt', 'r')
+    except IOError:
+        return []
+    # if made it this far, no error occurred.
+    ids = file.readlines()
+    file.close()  # almost forgot to close the file
+    return list(filter(None, ids))  # no empty strings allowed
 
 
 # returns a formatted string that describes the bot's usage
@@ -124,7 +155,8 @@ def get_default_text_channel(server: discord.Server):
 def transpose_submission_to_food_post(submission):
     sub_id = submission.id
     url = get_image_url(submission)
-    permalink = submission.permalink
+    # permalink does not give the full URL, so build it instead.
+    permalink = 'https://www.reddit.com{}'.format(submission.permalink)
     title = submission.title
     return FoodPost(id=sub_id, title=title, image_url=url, permalink=permalink)
 
@@ -132,7 +164,7 @@ def transpose_submission_to_food_post(submission):
 # because a submission's URL can either be the link to a hosted image, or to the comments section of it's own
 # submission, let's try to get the actual image every time.
 def get_image_url(submission):
-    return ''
+    return 'https://i.redd.it/6egiskh8k3101.jpg'  # TODO: figure out what kinds of data can appear
 
 
 # takes a FoodPost and maps its attributes to attributes of a discord.Embed object
