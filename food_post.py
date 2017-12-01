@@ -1,9 +1,10 @@
 # DTO for aggregated information from a Reddit post
 class FoodPost:
     # Attributes
+    # id - the submission ID given by Reddit
     # title - the Post title
-    # subreddit - the subreddit that this post was found in
     # post_url - the permalink for this post
+    # image_url - the url for the associated image of a submission
     def __init__(self, **kwargs):
         self.id = kwargs.get('id')
         self.title = kwargs.get('title')
