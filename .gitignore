@@ -1,3 +1,5 @@
 .idea
 __pycache__
 auths.py
+post_ids.txt
+subreddits.txt
