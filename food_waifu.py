@@ -164,7 +164,7 @@ def transpose_submission_to_food_post(submission):
 # because a submission's URL can either be the link to a hosted image, or to the comments section of it's own
 # submission, let's try to get the actual image every time.
 def get_image_url(submission):
-    return 'https://i.redd.it/6egiskh8k3101.jpg'  # TODO: figure out what kinds of data can appear
+    return submission.url  # TODO: figure out what kinds of data can appear
 
 
 # takes a FoodPost and maps its attributes to attributes of a discord.Embed object
