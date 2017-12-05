@@ -13,7 +13,8 @@ Discord bot that posts a picture of food once an hour.
 
 `!food random` picks a random picture of food and posts it to the channel.
 
-TBD
+`!food search` takes in a search query and returns the first, most relevant result. This could be a duplicate result.
+ New results are noted so that the bot doesn't post the same one in it's recurring job.
 
 ### Setup
 

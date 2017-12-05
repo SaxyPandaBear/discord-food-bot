@@ -59,7 +59,8 @@ async def on_message(message: discord.Message):
             # for now just concatenate the search terms and then print them out
             # to make sure I concatenated them correctly
             terms = concat_strings(msg_contents[1:])  # don't include "search"
-            await client.send_message(message.channel, 'Searched terms: {}'.format(terms))
+            em = search_posts(query=terms)
+            await client.send_message(message.channel, embed=em)
     else:
         msg = "Unrecognized operation: '{0}'\n{1}".format(msg_contents[0], help_message())
         await client.send_message(message.channel, msg)  # opt to send 1 message instead of 2.
@@ -103,6 +104,31 @@ def get_embedded_post():
     write_id_to_file(post.id)
     em = transpose_food_post_to_embed(post)
     return em
+
+
+# takes a search query and returns the first result within the given
+# subreddits. this includes duplicates
+def search_posts(query):
+    subs = get_list_of_subs()
+    ids = get_previous_post_ids()
+
+    submission = search_submission_from_subs(subs, query)
+    if submission.id not in ids:  # if it's not a duplicate, write the id
+        write_id_to_file(submission.id)
+    post = transpose_submission_to_food_post(submission)
+    write_id_to_file(post.id)
+    em = transpose_food_post_to_embed(post)
+    return em
+
+
+# find the first, most relevant result from the search. include duplicates
+def search_submission_from_subs(subs, query):
+    subs_list = ''
+    for i in range(len(subs)):
+        subs_list += subs[i]
+        if i != len(subs) - 1:
+            subs_list += "+"
+    return next(reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene', time_filter='month'))
 
 
 # takes a Reddit submission ID and writes it to the file of previous post ids used.
@@ -163,7 +189,8 @@ def help_bot_random():
 def help_bot_search():
     return '[search] => the bot takes in search terms and posts the first picture it finds' \
            'based on those terms. If the picture has already been posted, the bot attempts' \
-           'to post the next picture, until it exhausts all of its options.'
+           'to post the next picture, until it exhausts all of its options.\n' \
+           'Example usage: "!food search pizza"'
 
 
 # takes a server object and searches for the first text channel it finds.
