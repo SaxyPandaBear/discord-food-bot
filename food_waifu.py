@@ -11,6 +11,8 @@ reddit = praw.Reddit(client_id=auths.reddit_client_id,
                      client_secret=auths.reddit_client_secret,
                      user_agent='discord:food_waifu:v0.1')  # instantiate a new Reddit Client
 
+# TODO: rewrite parts of the bot to run asynchronously
+
 
 @client.event
 async def on_ready():
@@ -22,20 +24,20 @@ async def on_message(message: discord.Message):
     if message.author == client.user:
         return  # we want to filter out messages from our bot
     if not message.content.startswith('!food'):
-        return  # don't process messages without the "$food" tag
+        return  # don't process messages without the "!food" tag
     msg_contents = message.content.split(' ')
     if len(msg_contents) < 2:
         msg = bot_description() + '\n' + help_message()  # send 1 concatenation rather than 2 messages
         await client.send_message(message.channel, msg)
         return
-    msg_contents = msg_contents[1:]  # ignore the "$food" part of the message
+    msg_contents = msg_contents[1:]  # ignore the "!food" part of the message
 
-    # "$food help [function]"
+    # "!food help [function]"
     # if an optional [function] argument is given, the bot prints a description
     # of that function's usage,
     # otherwise, it just prints out the generic help text that is printed out
     # when an unrecognized command is given, or no commands are given.
-    if msg_contents[0] == 'help':
+    if msg_contents[0].lower() == 'help':
         # help no longer is a single command usage.
         # it can be used to get more detailed info on other available functions
         if len(msg_contents) == 1:  # no args were passed in
@@ -45,8 +47,19 @@ async def on_message(message: discord.Message):
                 await client.send_message(message.channel, help_bot_random())
             else:
                 await client.send_message(message.channel, help_message())
-    elif msg_contents[0] == 'random':
-        await client.send_message(message.channel, embed=get_embedded_post())
+    elif msg_contents[0].lower() == 'random':
+        em = get_embedded_post()
+        await client.send_message(message.channel, embed=em)
+    elif msg_contents[0].lower() == 'search':
+        # need to make sure there is actually a term to be searched
+        if len(msg_contents) < 2:
+            await client.send_message(message.channel, help_bot_search())
+            return
+        else:
+            # for now just concatenate the search terms and then print them out
+            # to make sure I concatenated them correctly
+            terms = concat_strings(msg_contents[1:])  # don't include "search"
+            await client.send_message(message.channel, 'Searched terms: {}'.format(terms))
     else:
         msg = "Unrecognized operation: '{0}'\n{1}".format(msg_contents[0], help_message())
         await client.send_message(message.channel, msg)  # opt to send 1 message instead of 2.
@@ -54,21 +67,22 @@ async def on_message(message: discord.Message):
     pass
 
 
-# hard-coded embed object for testing purposes
-def get_hardcoded_embedded():
-    em = discord.Embed(title='Food',
-                       description='stuff about food',
-                       color=0xDB5172)
-    em.set_image(url='https://i.redd.it/6egiskh8k3101.jpg')
-    return em
-
-
 # function that posts a picture to the server once every hour
 async def post_new_picture():
     await client.wait_until_ready()  # doesn't execute until the client is ready
     while not client.is_closed:
         em = get_embedded_post()  # get a single post, and post it to each server
-        # em = get_hardcoded_embedded()  # TODO: test with hardcoded value to get desired format
+        # TODO: figure out how to make this asynchronous to support a large number of servers
+        '''
+        Current error
+        ==============
+        Task exception was never retrieved
+        future: <Task finished coro=<post_new_picture() done, defined at food_waifu.py:68> exception=TypeError("'async for' requires an object with __aiter__ method, got dict_values",)>
+        Traceback (most recent call last):
+            File "food_waifu.py", line 72, in post_new_picture
+            async for server in client.servers:  # each server that this bot is active in
+        TypeError: 'async for' requires an object with __aiter__ method, got dict_values
+        '''
         for server in client.servers:  # each server that this bot is active in
             channel = get_default_text_channel(server)
             await client.send_message(channel, embed=em)  # post to the default text channel
@@ -83,7 +97,7 @@ def get_embedded_post():
     subs = get_list_of_subs()
     ids = get_previous_post_ids()
 
-    submission = get_submission_from_subs(subs, ids)  # TODO: read subs and ids from file
+    submission = get_submission_from_subs(subs, ids)
     post = transpose_submission_to_food_post(submission)
     # need to write the id of this post into our file so we don't post it again later
     write_id_to_file(post.id)
@@ -97,6 +111,11 @@ def get_embedded_post():
 def write_id_to_file(post_id):
     with open('post_ids.txt', 'a') as file:
         file.write('{}\n'.format(post_id))
+
+
+# take a list of strings and concatenate them
+def concat_strings(strings):
+    return ' '.join(strings)  # use join instead of + concatenation
 
 
 # function that reads from the subreddits.txt file and returns a list of strings that are the read
@@ -131,13 +150,20 @@ def bot_description():
 # returns a formatted string that lists the available functions
 def help_message():
     return 'Available functions: [ random ]\n' \
-           'Type "$food help [function]" for more details on a specific function and it\'s usage.'
+           'Type "!food help [function]" for more details on a specific function and it\'s usage.'
 
 
 # returns a string that details the usage of the 'random' function of the bot
 def help_bot_random():
     return '[random] => the bot posts an embedded message with a picture of food.\n' \
-           'Example usage: "$food random"'
+           'Example usage: "!food random"'
+
+
+# returns a string that details the usage of the 'search' function of the bot
+def help_bot_search():
+    return '[search] => the bot takes in search terms and posts the first picture it finds' \
+           'based on those terms. If the picture has already been posted, the bot attempts' \
+           'to post the next picture, until it exhausts all of its options.'
 
 
 # takes a server object and searches for the first text channel it finds.
@@ -180,7 +206,7 @@ def transpose_food_post_to_embed(post: FoodPost):
 
 
 # returns a random submission from the given list of subreddits
-# uses the top 15 hot submissions
+# uses the top 20 hot submissions
 # has a list of ids for posts that were already posted.
 def get_submission_from_subs(subs, already_posted):
     submissions = []
