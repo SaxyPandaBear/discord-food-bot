@@ -68,7 +68,7 @@ async def on_message(message: discord.Message):
     pass
 
 
-# function that posts a picture to the server once every hour
+# function that posts a picture to the server on a timer
 async def post_new_picture():
     await client.wait_until_ready()  # doesn't execute until the client is ready
     while not client.is_closed:
@@ -90,7 +90,7 @@ async def post_new_picture():
         # we successfully (hopefully) posted an image to each server this bot is in,
         # but we don't want to post duplicates later.
         # write all of the ids used to a file
-        await asyncio.sleep(3600)  # once an hour, or rather, once every 3,600 seconds
+        await asyncio.sleep(86400)  # once a day
 
 
 # returns a discord.Embed with all of the necessary information for an embedded message
@@ -169,7 +169,7 @@ def get_previous_post_ids():
 
 # returns a formatted string that describes the bot's usage
 def bot_description():
-    return 'This bot posts a picture of food once every hour, to the default text channel.\n' \
+    return 'This bot posts a picture of food once every day to the default text channel.\n' \
            'Read more about this bot, or contribute to it at https://github.com/SaxyPandaBear/food_waifu'
 
 
