@@ -169,13 +169,13 @@ def get_previous_post_ids():
 
 # returns a formatted string that describes the bot's usage
 def bot_description():
-    return 'This bot posts a picture of food once every day to the default text channel.\n' \
+    return 'This bot posts pictures of food on request, and on a daily schedule.\n' \
            'Read more about this bot, or contribute to it at https://github.com/SaxyPandaBear/food_waifu'
 
 
 # returns a formatted string that lists the available functions
 def help_message():
-    return 'Available functions: [ random ]\n' \
+    return 'Available functions: [ random, search ]\n' \
            'Type "!food help [function]" for more details on a specific function and it\'s usage.'
 
 
