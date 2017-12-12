@@ -1,7 +1,7 @@
 Food Waifu
 ===========
 
-Discord bot that posts a picture of food once an hour.
+Discord bot that posts a picture of food once a day.
 
 ### Features
 
