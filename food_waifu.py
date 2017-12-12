@@ -43,8 +43,10 @@ async def on_message(message: discord.Message):
         if len(msg_contents) == 1:  # no args were passed in
             await client.send_message(message.channel, help_message())
         else:
-            if msg_contents[1] == 'random':
+            if msg_contents[1].lower() == 'random':
                 await client.send_message(message.channel, help_bot_random())
+            elif msg_contents[1].lower() == 'search':
+                await client.send_message(message.channel, help_bot_search())
             else:
                 await client.send_message(message.channel, help_message())
     elif msg_contents[0].lower() == 'random':
@@ -78,7 +80,8 @@ async def post_new_picture():
         Current error
         ==============
         Task exception was never retrieved
-        future: <Task finished coro=<post_new_picture() done, defined at food_waifu.py:68> exception=TypeError("'async for' requires an object with __aiter__ method, got dict_values",)>
+        future: <Task finished coro=<post_new_picture() done, defined at food_waifu.py:68> 
+            exception=TypeError("'async for' requires an object with __aiter__ method, got dict_values",)>
         Traceback (most recent call last):
             File "food_waifu.py", line 72, in post_new_picture
             async for server in client.servers:  # each server that this bot is active in
