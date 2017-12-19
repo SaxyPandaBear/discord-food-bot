@@ -126,11 +126,7 @@ def search_posts(query):
 
 # find the first, most relevant result from the search. include duplicates
 def search_submission_from_subs(subs, query):
-    subs_list = ''
-    for i in range(len(subs)):
-        subs_list += subs[i]
-        if i != len(subs) - 1:
-            subs_list += "+"
+    subs_list = '+'.join(subs)
     return next(reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene', time_filter='month'))
 
 
@@ -240,11 +236,7 @@ def transpose_food_post_to_embed(post: FoodPost):
 # has a list of ids for posts that were already posted.
 def get_submission_from_subs(subs, already_posted):
     submissions = []
-    subs_list = ''
-    for i in range(len(subs)):
-        subs_list += subs[i]
-        if i != len(subs) - 1:
-            subs_list += "+"
+    subs_list = '+'.join(subs)
     # should have a string like "a+b+c"
     limit = 20  # this is the maximum number of submissions to poll
     for submission in reddit.subreddit(subs_list).hot(limit=limit):
