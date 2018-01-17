@@ -184,7 +184,7 @@ def bot_description():
 
 # returns a formatted string that lists the available functions
 def help_message():
-    return 'Available functions: [ random, search ]\n' \
+    return 'Available functions: [ random, search, clear ]\n' \
            'Type "!food help [function]" for more details on a specific function and it\'s usage.'
 
 
