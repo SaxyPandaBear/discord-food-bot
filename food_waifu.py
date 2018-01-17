@@ -47,6 +47,8 @@ async def on_message(message: discord.Message):
                 await client.send_message(message.channel, help_bot_random())
             elif msg_contents[1].lower() == 'search':
                 await client.send_message(message.channel, help_bot_search())
+            elif msg_contents[1].lower() == 'clear':
+                await client.send_message(message.channel, help_bot_clear())
             else:
                 await client.send_message(message.channel, help_message())
     elif msg_contents[0].lower() == 'random':
@@ -63,6 +65,10 @@ async def on_message(message: discord.Message):
             terms = concat_strings(msg_contents[1:])  # don't include "search"
             em = search_posts(query=terms)
             await client.send_message(message.channel, embed=em)
+    elif msg_contents[0].lower() == 'clear':
+        # if we attempt to 'clear', we are wiping the entire post_ids.txt file
+        clear_ids()
+        await client.send_message(message.channel, 'Successfully cleared contents.')
     else:
         msg = "Unrecognized operation: '{0}'\n{1}".format(msg_contents[0], help_message())
         await client.send_message(message.channel, msg)  # opt to send 1 message instead of 2.
@@ -110,12 +116,12 @@ def get_embedded_post():
 
 
 # takes a search query and returns the first result within the given
-# subreddits. this includes duplicates
+# subreddits. no duplicates are allowed
 def search_posts(query):
     subs = get_list_of_subs()
     ids = get_previous_post_ids()
 
-    submission = search_submission_from_subs(subs, query)
+    submission = search_submission_from_subs(subs, query, ids)
     if submission.id not in ids:  # if it's not a duplicate, write the id
         write_id_to_file(submission.id)
     post = transpose_submission_to_food_post(submission)
@@ -125,8 +131,12 @@ def search_posts(query):
 
 
 # find the first, most relevant result from the search. include duplicates
-def search_submission_from_subs(subs, query):
+def search_submission_from_subs(subs, query, ids):
     subs_list = '+'.join(subs)
+    for submission in reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene'):
+        if submission.id not in ids:
+            return submission
+    # if we didn't return in the iteration, just return the first relevant one this month
     return next(reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene', time_filter='month'))
 
 
@@ -192,6 +202,13 @@ def help_bot_search():
            'Example usage: "!food search pizza"'
 
 
+# returns a string that details the usage of the 'clear' function of the bot
+def help_bot_clear():
+    return '[clear] => the bot wipes the contents of the file that keeps track of all of the' \
+           'previously posted food items.' \
+           'Example usage: "!food clear"'
+
+
 # takes a server object and searches for the first text channel it finds.
 # Discord has decided to not designate a specific "default" text channel anymore,
 # and the default is now the first text channel.
@@ -254,6 +271,11 @@ def get_submission_from_subs(subs, already_posted):
 def random_submission(submissions):
     index = random.randint(0, len(submissions) - 1)
     return submissions[index]
+
+
+# wipes the contents of the post_ids text file
+def clear_ids():
+    open('post_ids.txt', 'w').close()  # the 'w' flag wipes the contents of the file
 
 
 # Starts the discord client
