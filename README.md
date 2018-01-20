@@ -23,6 +23,8 @@ Discord bot that posts a picture of food once a day.
 - [discord.py](https://github.com/Rapptz/discord.py) v0.16.12
 - [PRAW](https://praw.readthedocs.io/en/latest/index.html) v5.2.0
 
+A simple way to get the required libraries is through Pip: `pip install -r requirements.txt`
+
 To set up the bot, it requires a file, `auths.py` (a template is provided). This file contains all of the 
 authentication for both Discord and Reddit, and is necessary to interface with their APIs.
 
