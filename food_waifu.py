@@ -94,12 +94,12 @@ async def post_new_picture():
         TypeError: 'async for' requires an object with __aiter__ method, got dict_values
         '''
         for server in client.servers:  # each server that this bot is active in
-            channel = get_default_text_channel(server)
+            channel = get_text_channel(server)
             await client.send_message(channel, embed=em)  # post to the default text channel
         # we successfully (hopefully) posted an image to each server this bot is in,
         # but we don't want to post duplicates later.
         # write all of the ids used to a file
-        await asyncio.sleep(86400)  # once a day
+        await asyncio.sleep(43200)  # twice a day
 
 
 # returns a discord.Embed with all of the necessary information for an embedded message
@@ -209,14 +209,19 @@ def help_bot_clear():
            'Example usage: "!food clear"'
 
 
-# takes a server object and searches for the first text channel it finds.
-# Discord has decided to not designate a specific "default" text channel anymore,
-# and the default is now the first text channel.
-def get_default_text_channel(server: discord.Server):
+# takes a server object and returns the first channel that the bot has access to post to.
+def get_text_channel(server: discord.Server):
     for channel in server.channels:
-        if channel.type == discord.ChannelType.text:  # the first text channel is our default channel
+        if channel.type == discord.ChannelType.text:
             return channel
     return None  # somehow there isn't a text channel (not sure if it's even possible to get to this state
+
+
+def valid_text_channel(channel: discord.Channel):
+    # just to be safe
+    if channel is None:
+        return False
+    return channel.type == discord.ChannelType.text and channel.permissions_for(client.user).send_messages
 
 
 # a FoodPost makes it more readable to interface with different attributes needed for a discord.Embed object
