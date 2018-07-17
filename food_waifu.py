@@ -210,18 +210,13 @@ def help_bot_clear():
 
 
 # takes a server object and returns the first channel that the bot has access to post to.
+# this is determined by using the Channel class's `permissions_for(..)` function
 def get_text_channel(server: discord.Server):
+    member: discord.Member = server.me
     for channel in server.channels:
-        if channel.type == discord.ChannelType.text:
+        if channel.type == discord.ChannelType.text and channel.permissions_for(member).send_messages:
             return channel
     return None  # somehow there isn't a text channel (not sure if it's even possible to get to this state
-
-
-def valid_text_channel(channel: discord.Channel):
-    # just to be safe
-    if channel is None:
-        return False
-    return channel.type == discord.ChannelType.text and channel.permissions_for(client.user).send_messages
 
 
 # a FoodPost makes it more readable to interface with different attributes needed for a discord.Embed object
