@@ -63,7 +63,7 @@ async def on_message(message: discord.Message):
             # for now just concatenate the search terms and then print them out
             # to make sure I concatenated them correctly
             terms = concat_strings(msg_contents[1:])  # don't include "search"
-            em = search_posts(query=terms)
+            em = search_posts(query=build_query(terms))
             await client.send_message(message.channel, embed=em)
     elif msg_contents[0].lower() == 'clear':
         # if we attempt to 'clear', we are wiping the entire post_ids.txt file
@@ -276,6 +276,13 @@ def random_submission(submissions):
 # wipes the contents of the post_ids text file
 def clear_ids():
     open('post_ids.txt', 'w').close()  # the 'w' flag wipes the contents of the file
+
+
+# takes a query for searching and applies the necessary restrictions
+# we want to limit our searches to just the title of the post, and also
+# exclude all self posts (text posts)
+def build_query(terms):
+    return 'title:"{}" self:no'.format(terms)
 
 
 # Starts the discord client
