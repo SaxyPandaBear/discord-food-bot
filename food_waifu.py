@@ -5,12 +5,10 @@ import auths
 import random
 from food_post import FoodPost
 import logging
+import boto3
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-logger.addHandler(handler)
 
 client = discord.Client()  # instantiate a new Discord Client
 reddit = praw.Reddit(client_id=auths.reddit_client_id,
@@ -289,10 +287,20 @@ def build_query(terms):
     return 'title:"{}" self:no'.format(terms)
 
 
+def publish_sns_on_error(ex):
+    sns_client = boto3.client('sns')
+    message = "An error occurred in the food bot: {}".format(repr(ex))
+    response = sns_client.publish(
+        TopicArn='REPLACE_ARN',  # this gets replaced in the UserData in the CFT
+        Message=message
+    )
+    logger.info(response)
+
+
 # Starts the discord client
 client.loop.create_task(post_new_picture())  # looped task
 try:
     client.run(auths.discord_token)
 except Exception as e:
-    # TODO: add SNS message to alert failure?
+    publish_sns_on_error(e)
     logger.error(repr(e))

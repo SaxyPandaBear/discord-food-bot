@@ -34,6 +34,10 @@
         "RedditClientSecret": {
             "Description": "Client Secret of Reddit app associated with the discord bot",
             "Type": "String"
+        },
+        "PhoneNumber": {
+            "Description": "Phone number to receive SMS message when bot is offline",
+            "Type": "String"
         }
     },
     "Mappings" : {
@@ -57,6 +61,23 @@
     },
   
     "Resources" : {
+        "BotErrorAlert": {
+            "Type" : "AWS::SNS::Topic",
+            "Properties" : {
+                "DisplayName" : "FoodBotError",
+                "Subscription" : [ 
+                    {
+                        "Type" : "AWS::SNS::Subscription",
+                        "Properties" : {
+                            "Endpoint" : {"Ref": "PhoneNumber"},
+                            "Protocol" : "sms",
+                            "TopicArn" : {"Ref": "BotErrorAlert"}
+                        }
+                    }
+                ],
+                "TopicName" : "food_bot_offline"
+            }
+        },
         "EC2Instance" : {
             "Type" : "AWS::EC2::Instance",
             "Properties" : {
@@ -69,6 +90,9 @@
                     "#!/bin/bash -xe\n",
                     "sudo yum -y update\n",
                     "sudo yum -y install python36 git\n",
+                    "curl --silent --location https://rpm.nodesource.com/setup_10.x | sudo bash -\n",
+                    "sudo yum -y install nodejs\n",
+                    "sudo npm install -g npm\n",
                     "cd /home/ec2-user/\n",
                     "git clone https://github.com/SaxyPandaBear/food_waifu.git\n",
                     "cd food_waifu\n",
@@ -78,7 +102,10 @@
                     "sed -i 's/ID/", {"Ref": "RedditClientID"}, "/g' auths.py\n",
                     "sed -i 's/SECRET/", {"Ref": "RedditClientSecret"}, "/g' auths.py\n",
                     "sed -i 's/DISCORD TOKEN/", {"Ref": "DiscordBotToken"}, "/g' auths.py\n",
-                    "cp start-food-bot /etc/cron.d\n"
+                    "sudo npm install pm2 -g\n",
+                    "sudo pm2 start food_waifu.py\n",
+                    "sudo pm2 startup\n",
+                    "sudo pm2 save\n"
                 ]]}}
             }
         },

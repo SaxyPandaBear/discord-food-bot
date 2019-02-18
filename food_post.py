@@ -10,3 +10,9 @@ class FoodPost:
         self.title = kwargs.get('title')
         self.post_url = kwargs.get('permalink')
         self.image_url = kwargs.get('image_url')
+
+    def __str__(self):
+        return '{0} : {1}'.format(self.title, self.post_url)
+
+    def __repr__(self):
+        return __str__()
