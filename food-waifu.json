@@ -78,8 +78,7 @@
                     "sed -i 's/ID/", {"Ref": "RedditClientID"}, "/g' auths.py\n",
                     "sed -i 's/SECRET/", {"Ref": "RedditClientSecret"}, "/g' auths.py\n",
                     "sed -i 's/DISCORD TOKEN/", {"Ref": "DiscordBotToken"}, "/g' auths.py\n",
-                    "cp start-food-bot /etc/cron.d\n",
-                    "python3 food_waifu.py &"
+                    "cp start-food-bot /etc/cron.d\n"
                 ]]}}
             }
         },
