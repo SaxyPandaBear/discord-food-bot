@@ -3,6 +3,7 @@ import praw
 import asyncio
 import auths
 import random
+from time import gmtime
 from food_post import FoodPost
 import logging
 import boto3
@@ -14,6 +15,7 @@ client = discord.Client()  # instantiate a new Discord Client
 reddit = praw.Reddit(client_id=auths.reddit_client_id,
                      client_secret=auths.reddit_client_secret,
                      user_agent='discord:food_waifu:v0.1')  # instantiate a new Reddit Client
+stored_hour = None  # use this to determine when to post hourly
 
 
 @client.event
@@ -82,26 +84,29 @@ async def on_message(message):
 async def post_new_picture():
     await client.wait_until_ready()  # doesn't execute until the client is ready
     while not client.is_closed:
-        em = get_embedded_post()  # get a single post, and post it to each server
-        # TODO: figure out how to make this asynchronous to support a large number of servers
-        '''
-        Current error
-        ==============
-        Task exception was never retrieved
-        future: <Task finished coro=<post_new_picture() done, defined at food_waifu.py:68> 
-            exception=TypeError("'async for' requires an object with __aiter__ method, got dict_values",)>
-        Traceback (most recent call last):
-            File "food_waifu.py", line 72, in post_new_picture
-            async for server in client.servers:  # each server that this bot is active in
-        TypeError: 'async for' requires an object with __aiter__ method, got dict_values
-        '''
-        for server in client.servers:  # each server that this bot is active in
-            channel = get_text_channel(server)
-            await client.send_message(channel, embed=em)  # post to the default text channel
-        # we successfully (hopefully) posted an image to each server this bot is in,
-        # but we don't want to post duplicates later.
-        # write all of the ids used to a file
-        await asyncio.sleep(43200)  # twice a day
+        current_time = gmtime().tm_hour
+        if stored_hour is None or is_scheduled_time(current_time):
+            # set stored_hour for next scheduled post
+            stored_hour = current_time
+            
+            em = get_embedded_post()  # get a single post, and post it to each server
+            for server in client.servers:  # each server that this bot is active in
+                channel = get_text_channel(server)
+                await client.send_message(channel, embed=em)  # post to the default text channel
+            # we successfully (hopefully) posted an image to each server this bot is in,
+            # but we don't want to post duplicates later.
+            # write all of the ids used to a file
+        await asyncio.sleep(30)  # wait 30 seconds before checking again
+
+
+# return True if is next hour, false otherwise
+def is_scheduled_time(current_time):
+    # if the hour that we store is 23, that means the next hour should be 0
+    if stored_hour == 23:
+        return current_time < 23
+    else:
+        # otherwise compare normally
+        return current_time > stored_hour
 
 
 # returns a discord.Embed with all of the necessary information for an embedded message
