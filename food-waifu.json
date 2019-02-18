@@ -101,7 +101,7 @@
                     "sed -i 's/SECRET/", {"Ref": "RedditClientSecret"}, "/g' auths.py\n",
                     "sed -i 's/DISCORD TOKEN/", {"Ref": "DiscordBotToken"}, "/g' auths.py\n",
                     "sudo npm install pm2 -g\n",
-                    "sudo pm2 start food_waifu.py\n",
+                    "sudo pm2 start food_waifu.py --interpreter /usr/bin/python3\n",
                     "sudo pm2 startup\n",
                     "sudo pm2 save\n"
                 ]]}}
