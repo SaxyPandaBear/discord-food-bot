@@ -1,0 +1,1 @@
+0 0-23/2 * * * python3 food_waifu.py 

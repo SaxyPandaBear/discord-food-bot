@@ -3,6 +3,7 @@ import praw
 import asyncio
 import auths
 import random
+import logging
 from food_post import FoodPost
 
 
@@ -11,12 +12,10 @@ reddit = praw.Reddit(client_id=auths.reddit_client_id,
                      client_secret=auths.reddit_client_secret,
                      user_agent='discord:food_waifu:v0.1')  # instantiate a new Reddit Client
 
-# TODO: rewrite parts of the bot to run asynchronously
-
 
 @client.event
 async def on_ready():
-    print('Username: {0}\nID: {1}'.format(client.user.name, client.user.id))
+    logging.info('Username: {0}\nID: {1}'.format(client.user.name, client.user.id))
 
 
 @client.event
@@ -287,4 +286,4 @@ def build_query(terms):
 
 # Starts the discord client
 client.loop.create_task(post_new_picture())  # looped task
-client.run(auths.discord_token)
+client.start(auths.discord_token)
