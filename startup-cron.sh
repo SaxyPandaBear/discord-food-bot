@@ -1,1 +1,1 @@
-0 0-23/2 * * * python3 food_waifu.py 
+0 0-23/2 * * * nohup python3 food_waifu.py 
