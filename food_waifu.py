@@ -3,7 +3,6 @@ import praw
 import asyncio
 import auths
 import random
-import logging
 from food_post import FoodPost
 
 
@@ -15,7 +14,7 @@ reddit = praw.Reddit(client_id=auths.reddit_client_id,
 
 @client.event
 async def on_ready():
-    logging.info('Username: {0}\nID: {1}'.format(client.user.name, client.user.id))
+    print('Username: {0}\nID: {1}'.format(client.user.name, client.user.id))
 
 
 @client.event
