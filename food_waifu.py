@@ -4,9 +4,15 @@ import asyncio
 import auths
 import random
 from food_post import FoodPost
+import logging
 
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 
-client: discord.Client = discord.Client()  # instantiate a new Discord Client
+client = discord.Client()  # instantiate a new Discord Client
 reddit = praw.Reddit(client_id=auths.reddit_client_id,
                      client_secret=auths.reddit_client_secret,
                      user_agent='discord:food_waifu:v0.1')  # instantiate a new Reddit Client
@@ -14,11 +20,11 @@ reddit = praw.Reddit(client_id=auths.reddit_client_id,
 
 @client.event
 async def on_ready():
-    print('Username: {0}\nID: {1}'.format(client.user.name, client.user.id))
+    logger.info('Username: {0}\nID: {1}'.format(client.user.name, client.user.id))
 
 
 @client.event
-async def on_message(message: discord.Message):
+async def on_message(message):
     if message.author == client.user:
         return  # we want to filter out messages from our bot
     if not message.content.startswith('!food'):
@@ -209,7 +215,7 @@ def help_bot_clear():
 
 # takes a server object and returns the first channel that the bot has access to post to.
 # this is determined by using the Channel class's `permissions_for(..)` function
-def get_text_channel(server: discord.Server):
+def get_text_channel(server):
     member: discord.Member = server.me
     for channel in server.channels:
         if channel.type == discord.ChannelType.text and channel.permissions_for(member).send_messages:
@@ -236,7 +242,7 @@ def get_image_url(submission):
 
 # takes a FoodPost and maps its attributes to attributes of a discord.Embed object
 # that will be posted by the bot
-def transpose_food_post_to_embed(post: FoodPost):
+def transpose_food_post_to_embed(post):
     title = post.title
     desc = post.post_url
     color = 0xDB5172
@@ -285,4 +291,8 @@ def build_query(terms):
 
 # Starts the discord client
 client.loop.create_task(post_new_picture())  # looped task
-client.start(auths.discord_token)
+try:
+    client.run(auths.discord_token)
+except Exception as e:
+    # TODO: add SNS message to alert failure?
+    logger.error(repr(e))
