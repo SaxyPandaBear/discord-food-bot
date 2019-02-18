@@ -72,7 +72,7 @@
                     "cd /home/ec2-user/\n",
                     "git clone https://github.com/SaxyPandaBear/food_waifu.git\n",
                     "cd food_waifu\n",
-                    "sudo pip-3.6 install -r requirements.txt\n",
+                    "sudo -H pip-3.6 install -r requirements.txt\n",
                     "cp auths.py.template auths.py\n",
                     "printf '%s\n' 'foodporn' 'food' > subreddits.txt\n",
                     "sed -i 's/ID/", {"Ref": "RedditClientID"}, "/g' auths.py\n",
