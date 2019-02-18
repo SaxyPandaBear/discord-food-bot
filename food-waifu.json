@@ -67,17 +67,19 @@
                                 { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ] },
                 "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
                     "#!/bin/bash -xe\n",
+                    "sudo yum -y update\n",
                     "sudo yum -y install python36 git\n",
                     "cd /home/ec2-user/\n",
                     "git clone https://github.com/SaxyPandaBear/food_waifu.git\n",
                     "cd food_waifu\n",
-                    "pip-3.6 install -r requirements.txt --user \n",
+                    "sudo pip-3.6 install -r requirements.txt\n",
                     "cp auths.py.template auths.py\n",
                     "printf '%s\n' 'foodporn' 'food' > subreddits.txt\n",
                     "sed -i 's/ID/", {"Ref": "RedditClientID"}, "/g' auths.py\n",
                     "sed -i 's/SECRET/", {"Ref": "RedditClientSecret"}, "/g' auths.py\n",
                     "sed -i 's/DISCORD TOKEN/", {"Ref": "DiscordBotToken"}, "/g' auths.py\n",
-                    "cp start-food-bot /etc/cron.d"
+                    "cp start-food-bot /etc/cron.d\n",
+                    "python3 food_waifu.py &"
                 ]]}}
             }
         },
