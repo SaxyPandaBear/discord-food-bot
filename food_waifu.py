@@ -82,13 +82,14 @@ async def on_message(message):
 
 # function that posts a picture to the server on a timer
 async def post_new_picture():
+    global stored_hour
     await client.wait_until_ready()  # doesn't execute until the client is ready
     while not client.is_closed:
         current_time = gmtime().tm_hour
-        if stored_hour is None or is_scheduled_time(current_time):
+        if stored_hour is None or is_scheduled_time(current_time, stored_hour):
             # set stored_hour for next scheduled post
             stored_hour = current_time
-            
+
             em = get_embedded_post()  # get a single post, and post it to each server
             for server in client.servers:  # each server that this bot is active in
                 channel = get_text_channel(server)
@@ -100,7 +101,7 @@ async def post_new_picture():
 
 
 # return True if is next hour, false otherwise
-def is_scheduled_time(current_time):
+def is_scheduled_time(current_time, stored_hour):
     # if the hour that we store is 23, that means the next hour should be 0
     if stored_hour == 23:
         return current_time < 23
