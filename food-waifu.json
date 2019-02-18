@@ -65,17 +65,15 @@
             "Type" : "AWS::SNS::Topic",
             "Properties" : {
                 "DisplayName" : "FoodBotError",
-                "Subscription" : [ 
-                    {
-                        "Type" : "AWS::SNS::Subscription",
-                        "Properties" : {
-                            "Endpoint" : {"Ref": "PhoneNumber"},
-                            "Protocol" : "sms",
-                            "TopicArn" : {"Ref": "BotErrorAlert"}
-                        }
-                    }
-                ],
                 "TopicName" : "food_bot_offline"
+            }
+        },
+        "ErrorSubscription": {
+            "Type" : "AWS::SNS::Subscription",
+            "Properties" : {
+                "Endpoint" : {"Ref": "PhoneNumber"},
+                "Protocol" : "sms",
+                "TopicArn" : {"Ref": "BotErrorAlert"}
             }
         },
         "EC2Instance" : {
