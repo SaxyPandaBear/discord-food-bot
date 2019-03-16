@@ -68,7 +68,10 @@ async def on_message(message):
             # to make sure I concatenated them correctly
             terms = concat_strings(msg_contents[1:])  # don't include "search"
             em = search_posts(query=build_query(terms))
-            await client.send_message(message.channel, embed=em)
+            if em is None:
+                await client.send_message(message.channel, 'No results found for "' + terms + '"')
+            else:
+                await client.send_message(message.channel, embed=em)
     elif msg_contents[0].lower() == 'clear':
         # if we attempt to 'clear', we are wiping the entire post_ids.txt file
         clear_ids()
@@ -130,6 +133,11 @@ def search_posts(query):
     ids = get_previous_post_ids()
 
     submission = search_submission_from_subs(subs, query, ids)
+    
+    # if submission is None, then the search returned no results
+    if submission is None:
+        return None
+    
     if submission.id not in ids:  # if it's not a duplicate, write the id
         write_id_to_file(submission.id)
     post = transpose_submission_to_food_post(submission)
@@ -145,7 +153,12 @@ def search_submission_from_subs(subs, query, ids):
         if submission.id not in ids:
             return submission
     # if we didn't return in the iteration, just return the first relevant one this month
-    return next(reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene', time_filter='month'))
+    try:
+        # call to next() can raise StopIteration error if the list generator has no values left, meaning there were no results for this search
+        result = next(reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene', time_filter='month'))
+    except StopIteration:
+        logger.error('No results found for ' + query)
+        return None
 
 
 # takes a Reddit submission ID and writes it to the file of previous post ids used.
