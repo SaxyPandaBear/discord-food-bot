@@ -86,7 +86,9 @@ async def on_message(message):
         clear_ids()
         await client.send_message(message.channel, 'Successfully cleared contents.')
     elif msg_contents[0].lower() == 'restart':
-        if not restart_bot():
+        if not is_user_admin(message.channel, message.author):
+            await client.send_message(message.channel, f"User {message.author.display_name} does not have the privileges to restart the bot.")
+        elif not restart_bot():
             await client.send_message(message.channel, "Error when attempting to restart bot. Please restart manually.")
     else:
         msg = "Unrecognized operation: '{0}'\n{1}".format(msg_contents[0], help_message())
@@ -322,6 +324,10 @@ def build_query(terms):
     return 'title:"{}" self:no'.format(terms)
 
 
+def is_user_admin(channel, user):
+    perms = user.permissions_in(channel)
+    return perms.administrator
+
 # restarts the bot using pm2's restart functionality.
 # if the bot restarts successfully, then the bot will have been
 # abruptly stopped, not gracefully.
@@ -333,6 +339,8 @@ def restart_bot():
     # the output of the above command would be in the form of "[ id ]" with the intended whitespace illustrated
     # need to strip the characters around the ID
     pm2_id = id_output.stdout.replace("[", "").replace("]", "").strip()
+    if len(pm2_id) == 0: 
+        return False
     logger.info(pm2_id)
 
     # attempt to restart the bot
