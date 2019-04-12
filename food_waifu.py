@@ -7,9 +7,16 @@ from time import gmtime
 from food_post import FoodPost
 import logging
 import boto3
+import subprocess
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler('/home/ec2-user/food_waifu/log.txt')
+file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 client = discord.Client()  # instantiate a new Discord Client
 reddit = praw.Reddit(client_id=auths.reddit_client_id,
@@ -53,6 +60,8 @@ async def on_message(message):
                 await client.send_message(message.channel, help_bot_search())
             elif msg_contents[1].lower() == 'clear':
                 await client.send_message(message.channel, help_bot_clear())
+            elif msg_contents[1].lower() == 'restart':
+                await client.send_message(message.channel, help_bot_restart())
             else:
                 await client.send_message(message.channel, help_message())
     elif msg_contents[0].lower() == 'random':
@@ -76,11 +85,12 @@ async def on_message(message):
         # if we attempt to 'clear', we are wiping the entire post_ids.txt file
         clear_ids()
         await client.send_message(message.channel, 'Successfully cleared contents.')
+    elif msg_contents[0].lower() == 'restart':
+        if not restart_bot():
+            await client.send_message(message.channel, "Error when attempting to restart bot. Please restart manually.")
     else:
         msg = "Unrecognized operation: '{0}'\n{1}".format(msg_contents[0], help_message())
         await client.send_message(message.channel, msg)  # opt to send 1 message instead of 2.
-    # TODO: see how difficult it will be to search for a specific dish
-    pass
 
 
 # function that posts a picture to the server on a timer
@@ -230,6 +240,12 @@ def help_bot_clear():
            'Example usage: "!food clear"'
 
 
+# returns a string that details the usage of the 'restart' function of the bot
+def help_bot_restart():
+    return '[restart] => the bot restarts itself. ' \
+           'Example usage: "!food restart"'
+
+
 # takes a server object and returns the first channel that the bot has access to post to.
 # this is determined by using the Channel class's `permissions_for(..)` function
 def get_text_channel(server):
@@ -306,14 +322,20 @@ def build_query(terms):
     return 'title:"{}" self:no'.format(terms)
 
 
-def publish_sns_on_error(ex):
-    sns_client = boto3.client('sns')
-    message = "An error occurred in the food bot: {}".format(repr(ex))
-    response = sns_client.publish(
-        TopicArn='REPLACE_ARN',  # this gets replaced in the UserData in the CFT
-        Message=message
-    )
-    logger.info(response)
+# restarts the bot using pm2's restart functionality.
+# if the bot restarts successfully, then the bot will have been
+# abruptly stopped, not gracefully.
+def restart_bot():
+    # first, need to get this process's ID from pm2.
+    # then, invoke restart on it.
+    id_output = subprocess.run(["pm2", "id", "food_waifu"], capture_output=True, text=True)
+    # the output of the above command would be in the form of "[ id ]" with the intended whitespace illustrated
+    # need to strip the characters around the ID
+    pm2_id = id_output.stdout.replace("[", "").replace("]", "").strip()
+
+    # attempt to restart the bot
+    subprocess.run(["pm2", "restart", str(pm2_id)])
+    return False
 
 
 # Starts the discord client
@@ -321,5 +343,4 @@ client.loop.create_task(post_new_picture())  # looped task
 try:
     client.run(auths.discord_token)
 except Exception as e:
-    publish_sns_on_error(e)
     logger.error(repr(e))
