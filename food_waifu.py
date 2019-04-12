@@ -334,7 +334,7 @@ def is_user_admin(channel, user):
 def restart_bot():
     # first, need to get this process's ID from pm2.
     # then, invoke restart on it.
-    id_output = subprocess.run(["pm2", "id", "food_waifu"], capture_output=True, text=True)
+    id_output = subprocess.run(["sudo", "pm2", "id", "food_waifu"], capture_output=True, text=True)
     logger.info(id_output)
     # the output of the above command would be in the form of "[ id ]" with the intended whitespace illustrated
     # need to strip the characters around the ID
@@ -344,7 +344,7 @@ def restart_bot():
     logger.info(pm2_id)
 
     # attempt to restart the bot
-    subprocess.run(["pm2", "restart", str(pm2_id)])
+    subprocess.run(["sudo", "pm2", "restart", str(pm2_id)])
     return False
 
 
