@@ -37,6 +37,8 @@ async def on_message(message):
         return  # we want to filter out messages from our bot
     if not message.content.startswith('!food'):
         return  # don't process messages without the "!food" tag
+    if message.server is None:
+        return # we don't want to process messages that are direct messages.
     msg_contents = message.content.split(' ')
     if len(msg_contents) < 2:
         msg = bot_description() + '\n' + help_message()  # send 1 concatenation rather than 2 messages
@@ -66,7 +68,7 @@ async def on_message(message):
             else:
                 await client.send_message(message.channel, help_message())
     elif msg_contents[0].lower() == 'random':
-        em = get_embedded_post(message.channel)
+        em = get_embedded_post(message.server.id)
         await client.send_message(message.channel, embed=em)
     elif msg_contents[0].lower() == 'search':
         # need to make sure there is actually a term to be searched
@@ -77,7 +79,7 @@ async def on_message(message):
             # for now just concatenate the search terms and then print them out
             # to make sure I concatenated them correctly
             terms = concat_strings(msg_contents[1:])  # don't include "search"
-            em = search_posts(query=build_query(terms), message.channel)
+            em = search_posts(query=build_query(terms), message.server.id)
             if em is None:
                 await client.send_message(message.channel, 'No results found for "' + terms + '"')
             else:
@@ -131,21 +133,21 @@ def is_scheduled_time(current_time, stored_hour):
 
 
 # returns a discord.Embed with all of the necessary information for an embedded message
-def get_embedded_post():
+def get_embedded_post(server):
     subs = get_list_of_subs()
     ids = get_previous_post_ids()
 
     submission = get_submission_from_subs(subs, ids)
     post = transpose_submission_to_food_post(submission)
     # need to write the id of this post into our file so we don't post it again later
-    write_id_to_file(post.id)
+    write_id_to_file(post.id, server)
     em = transpose_food_post_to_embed(post)
     return em
 
 
 # takes a search query and returns the first result within the given
 # subreddits. no duplicates are allowed
-def search_posts(query):
+def search_posts(query, server):
     subs = get_list_of_subs()
     ids = get_previous_post_ids()
 
@@ -155,15 +157,13 @@ def search_posts(query):
     if submission is None:
         return None
     
-    if submission.id not in ids:  # if it's not a duplicate, write the id
-        write_id_to_file(submission.id)
+    write_id_to_file(submission.id, server)
     post = transpose_submission_to_food_post(submission)
-    write_id_to_file(post.id)
     em = transpose_food_post_to_embed(post)
     return em
 
 
-# find the first, most relevant result from the search. include duplicates
+# find the first, most relevant result from the search. do not include duplicates
 def search_submission_from_subs(subs, query, ids):
     subs_list = '+'.join(subs)
     for submission in reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene'):
@@ -181,6 +181,8 @@ def search_submission_from_subs(subs, query, ids):
 # takes a Reddit submission ID and writes it to the file of previous post ids used.
 # the 'a' mode for open() will create a new file if it does not already exist,
 # and writes appending to the file as opposed to truncating.
+# this file is defined by a path to the script itself, followed by /servers/ 
+# then followed by the UUID for the server. This creates a unique path to each server's file
 def write_id_to_file(post_id, server):
     with open(os.getcwd() + derive_server_file_path(server), 'a') as file:
         file.write('{}\n'.format(post_id))
