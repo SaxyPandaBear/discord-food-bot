@@ -88,7 +88,7 @@ async def on_message(message):
             await client.send_message(message.channel, f"User {message.author.mention} does not have the privileges to clear stored bot content.")
         else:
             clear_ids()
-        await client.send_message(message.channel, 'Successfully cleared contents.')
+            await client.send_message(message.channel, 'Successfully cleared contents.')
     elif msg_contents[0].lower() == 'restart':
         if not is_user_admin(message.channel, message.author):
             await client.send_message(message.channel, f"User {message.author.mention} does not have the privileges to restart the bot.")
