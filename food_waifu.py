@@ -215,7 +215,7 @@ def get_previous_post_ids():
 
 # returns a formatted string that describes the bot's usage
 def bot_description():
-    return 'This bot posts pictures of food on request, and on a daily schedule.\n' \
+    return 'This bot posts pictures of food on request, and on an hourly schedule.\n' \
            'Read more about this bot, or contribute to it at https://github.com/SaxyPandaBear/food_waifu'
 
 
@@ -242,13 +242,13 @@ def help_bot_search():
 # returns a string that details the usage of the 'clear' function of the bot
 def help_bot_clear():
     return '[clear] => the bot wipes the contents of the file that keeps track of all of the' \
-           'previously posted food items. *Only an administrator in the channel can perform this*\n' \
+           'previously posted food items. **Only an administrator in the channel can perform this**\n' \
            'Example usage: "!food clear"'
 
 
 # returns a string that details the usage of the 'restart' function of the bot
 def help_bot_restart():
-    return '[restart] => the bot restarts itself. *Only an administrator in the channel can perform this*\n' \
+    return '[restart] => the bot restarts itself. **Only an administrator in the channel can perform this**\n' \
            'Example usage: "!food restart"'
 
 
