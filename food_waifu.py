@@ -83,7 +83,11 @@ async def on_message(message):
                 await client.send_message(message.channel, embed=em)
     elif msg_contents[0].lower() == 'clear':
         # if we attempt to 'clear', we are wiping the entire post_ids.txt file
-        clear_ids()
+        # restrict access to only a channel administrator
+        if not is_user_admin(message.channel, message.author):
+            await client.send_message(message.channel, f"User {message.author.mention} does not have the privileges to clear stored bot content.")
+        else:
+            clear_ids()
         await client.send_message(message.channel, 'Successfully cleared contents.')
     elif msg_contents[0].lower() == 'restart':
         if not is_user_admin(message.channel, message.author):
@@ -238,13 +242,13 @@ def help_bot_search():
 # returns a string that details the usage of the 'clear' function of the bot
 def help_bot_clear():
     return '[clear] => the bot wipes the contents of the file that keeps track of all of the' \
-           'previously posted food items.' \
+           'previously posted food items. *Only an administrator in the channel can perform this*\n' \
            'Example usage: "!food clear"'
 
 
 # returns a string that details the usage of the 'restart' function of the bot
 def help_bot_restart():
-    return '[restart] => the bot restarts itself. ' \
+    return '[restart] => the bot restarts itself. *Only an administrator in the channel can perform this*\n' \
            'Example usage: "!food restart"'
 
 
