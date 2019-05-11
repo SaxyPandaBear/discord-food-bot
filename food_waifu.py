@@ -110,8 +110,8 @@ async def post_new_picture():
             stored_hour = current_time
 
             em = get_embedded_post()  # get a single post, and post it to each server
-            for server in client.servers:  # each server that this bot is active in
-                channel = get_text_channel(server)
+            for guild in client.guilds:  # each server that this bot is active in
+                channel = get_text_channel(guild)
                 await client.send_message(channel, embed=em)  # post to the default text channel
             # we successfully (hopefully) posted an image to each server this bot is in,
             # but we don't want to post duplicates later.
@@ -252,11 +252,11 @@ def help_bot_restart():
            'Example usage: "!food restart"'
 
 
-# takes a server object and returns the first channel that the bot has access to post to.
+# takes a Guild object and returns the first channel that the bot has access to post to.
 # this is determined by using the Channel class's `permissions_for(..)` function
-def get_text_channel(server):
-    member: discord.Member = server.me
-    for channel in server.channels:
+def get_text_channel(guild):
+    member: discord.Member = guild.me
+    for channel in guild.channels:
         if channel.type == discord.ChannelType.text and channel.permissions_for(member).send_messages:
             return channel
     return None  # somehow there isn't a text channel (not sure if it's even possible to get to this state
