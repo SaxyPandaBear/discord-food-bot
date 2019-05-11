@@ -8,6 +8,7 @@ from food_post import FoodPost
 import logging
 import boto3
 import subprocess
+import os
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
@@ -65,7 +66,7 @@ async def on_message(message):
             else:
                 await client.send_message(message.channel, help_message())
     elif msg_contents[0].lower() == 'random':
-        em = get_embedded_post()
+        em = get_embedded_post(message.channel)
         await client.send_message(message.channel, embed=em)
     elif msg_contents[0].lower() == 'search':
         # need to make sure there is actually a term to be searched
@@ -76,7 +77,7 @@ async def on_message(message):
             # for now just concatenate the search terms and then print them out
             # to make sure I concatenated them correctly
             terms = concat_strings(msg_contents[1:])  # don't include "search"
-            em = search_posts(query=build_query(terms))
+            em = search_posts(query=build_query(terms), message.channel)
             if em is None:
                 await client.send_message(message.channel, 'No results found for "' + terms + '"')
             else:
@@ -180,9 +181,15 @@ def search_submission_from_subs(subs, query, ids):
 # takes a Reddit submission ID and writes it to the file of previous post ids used.
 # the 'a' mode for open() will create a new file if it does not already exist,
 # and writes appending to the file as opposed to truncating.
-def write_id_to_file(post_id):
-    with open('post_ids.txt', 'a') as file:
+def write_id_to_file(post_id, server):
+    with open(os.getcwd() + derive_server_file_path(server), 'a') as file:
         file.write('{}\n'.format(post_id))
+
+
+# each server has it's own post_ids.txt file, stored in a separate directory.
+# the path to a specific server's file can be derived.
+def derive_server_file_path(server):
+    return f"/servers/{server}/post_ids.txt"
 
 
 # take a list of strings and concatenate them
