@@ -10,6 +10,7 @@ import logging
 import boto3
 import subprocess
 import os
+from bot_checks import pred_is_admin
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
@@ -67,13 +68,11 @@ async def post_new_picture():
             # set stored_hour for next scheduled post
             stored_hour = current_time
 
-            em = get_random_embedded_post()  # get a single post, and post it to each server
+            post_id, em = get_random_embedded_post()  # get a single post, and post it to each server
             for guild in bot.guilds:  # each server that this bot is active in
                 channel = get_text_channel(guild)
                 await channel.send(embed=em)  # post to the default text channel
-            # we successfully (hopefully) posted an image to each server this bot is in,
-            # but we don't want to post duplicates later.
-            # write all of the ids used to a file
+                write_id_to_file(post_id, guild)  # write the post ID to the server's file
         await asyncio.sleep(30)  # wait 30 seconds before checking again
 
 
@@ -88,7 +87,8 @@ def is_scheduled_time(current_time, stored_hour):
 
 
 # returns a discord.Embed with all of the necessary information for an embedded message
-def get_random_embedded_post():
+# this function accepts a guild parameter so that the ID can be written for the specific guild
+def get_random_embedded_post(server):
     subs = get_list_of_subs()
     ids = get_previous_post_ids()
 
@@ -98,6 +98,19 @@ def get_random_embedded_post():
     write_id_to_file(post.id, server)
     em = transpose_food_post_to_embed(post)
     return em
+
+# returns a discord.Embed with all of the necessary information for an embedded message
+# this function is parameterless, and as such returns both the embed object and the post ID from
+# the reddit post, so that the ID can be used afterwards. 
+# this function does not write the id to a file by itself
+def get_random_embedded_post():
+    subs = get_list_of_subs()
+    ids = get_previous_post_ids()
+
+    submission = get_submission_from_subs(subs, ids)
+    post = transpose_submission_to_food_post(submission)
+    em = transpose_food_post_to_embed(post)
+    return post.id, em
 
 
 # takes a search query and returns the first result within the given
@@ -171,8 +184,9 @@ def get_list_of_subs():
 # Note: This assumes that the file exists in the same directory as this script
 def get_previous_post_ids():
     try:
-        file = open('post_ids.txt', 'r')
-    except IOError:
+        file = open(os.getcwd() + derive_server_file_path(server), 'r')
+    except IOError as e:
+        logger.error(repr(e))
         return []
     # if made it this far, no error occurred.
     ids = file.read().splitlines()  # readlines() returns strings with newline characters
@@ -252,14 +266,6 @@ def build_query(terms):
     return 'title:"{}" self:no'.format(terms)
 
 
-# predicate used as a Check for the bot to verify from context if it should process the request
-async def is_admin(ctx):
-    return is_user_admin(ctx.channel, ctx.author)
-
-def is_user_admin(channel, user):
-    perms = user.permissions_in(channel)
-    return perms.administrator
-
 # restarts the bot using pm2's restart functionality.
 # if the bot restarts successfully, then the bot will have been
 # abruptly stopped, not gracefully.
@@ -287,7 +293,7 @@ async def on_ready():
 
 @bot.command(description="Post a new food picture into the channel", help=help_bot_random(), brief="Post a new food picture into the channel")
 async def new(context):
-    await context.send(embed=get_random_embedded_post())
+    await context.send(embed=get_random_embedded_post(context.guild))  # pass the guild from the context in order to write the ID to a file
 
 @bot.command(description="Searches for a new food picture to post into the channel", help=help_bot_search(), usage="something I want to search separated by spaces", brief="Searches for a new food picture to post into the channel")
 async def search(context, *search_terms: str):
@@ -305,13 +311,13 @@ async def search(context, *search_terms: str):
         return
 
 @bot.command(description="Clears the stored list of previous posts", help=help_bot_clear(), brief="Clears the stored list of previous posts")
-@commands.check(is_admin)
+@commands.check([pred_is_admin, pred_is_text_channel])  # restrict this command to Guild channels
 async def clear(context):
     clear_ids()
     await context.send("Successfully cleared contents")
 
 @bot.command(description="Restarts the bot on request", help=help_bot_restart(), brief="Restarts the bot on request")
-@commands.check(is_admin)
+@commands.check([pred_is_admin, pred_is_text_channel])  # restrict this command to Guild channels
 async def restart(context):
     if not restart_bot():
         await context.send("Error when attempting to restart bot. Please restart manually.")
