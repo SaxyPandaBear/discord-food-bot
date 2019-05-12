@@ -4,4 +4,5 @@ auths.py
 post_ids.txt
 subreddits.txt
 nohup.out
+log.txt
 .vscode
