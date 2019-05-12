@@ -128,6 +128,7 @@ def search_submission_from_subs(subs, query, ids):
     try:
         # call to next() can raise StopIteration error if the list generator has no values left, meaning there were no results for this search
         result = next(reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene', time_filter='month'))
+        return result
     except StopIteration:
         logger.error('No results found for ' + query)
         return None
@@ -139,6 +140,8 @@ def search_submission_from_subs(subs, query, ids):
 # this file is defined by a path to the script itself, followed by /servers/ 
 # then followed by the UUID for the server. This creates a unique path to each server's file
 def write_id_to_file(post_id, server):
+    p = os.getcwd() + derive_server_file_path(server)
+    logger.info(p)
     with open(os.getcwd() + derive_server_file_path(server), 'a') as file:
         file.write('{}\n'.format(post_id))
 
@@ -293,7 +296,7 @@ async def search(context, *search_terms: str):
         return
     terms = concat_strings(search_terms)
     query = build_query(terms)
-    em = search_posts(query)
+    em = search_posts(query, context.guild)
     if em is None:
         await context.send(f"No titles containing {terms} found in defined subreddits")
         return
