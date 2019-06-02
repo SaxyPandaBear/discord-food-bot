@@ -10,7 +10,7 @@ import logging
 import boto3
 import subprocess
 import os
-from bot_checks import pred_is_admin
+from bot_checks import pred_is_admin, pred_is_text_channel
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
