@@ -10,16 +10,17 @@ import logging
 import boto3
 import subprocess
 import os
-from bot_checks import pred_is_admin, pred_is_text_channel
+from predicates import is_admin
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
 
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
-file_handler = logging.FileHandler('/home/ec2-user/food_waifu/log.txt')  # TODO: figure out how to do this dynamically
+file_handler = logging.FileHandler(f'{os.getcwd()}/log.txt')  # TODO: figure out how to do this dynamically
 file_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+stream_handler.setFormatter(formatter)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
@@ -71,8 +72,15 @@ async def post_new_picture():
             post_id, em = get_random_embedded_post()  # get a single post, and post it to each server
             for guild in bot.guilds:  # each server that this bot is active in
                 channel = get_text_channel(guild)
+                # because we can't filter for posts that are already there in each server before
+                # generating the post, make the check here
+                if post_id in get_previous_post_ids(guild.id):
+                    # if the post is already there, generate a new one specific to this guild and return
+                    em = get_random_embedded_post(guild.id) # already written to file
+                    await channel.send(embed=em)
+                    continue
                 await channel.send(embed=em)  # post to the default text channel
-                write_id_to_file(post_id, guild)  # write the post ID to the server's file
+                write_id_to_file(post_id, guild.id)  # write the post ID to the server's file
         await asyncio.sleep(30)  # wait 30 seconds before checking again
 
 
@@ -90,7 +98,7 @@ def is_scheduled_time(current_time, stored_hour):
 # this function accepts a guild parameter so that the ID can be written for the specific guild
 def get_random_embedded_post(server):
     subs = get_list_of_subs()
-    ids = get_previous_post_ids()
+    ids = get_previous_post_ids(server)
 
     submission = get_submission_from_subs(subs, ids)
     post = transpose_submission_to_food_post(submission)
@@ -105,9 +113,9 @@ def get_random_embedded_post(server):
 # this function does not write the id to a file by itself
 def get_random_embedded_post():
     subs = get_list_of_subs()
-    ids = get_previous_post_ids()
+    # ids = get_previous_post_ids()
 
-    submission = get_submission_from_subs(subs, ids)
+    submission = get_submission_from_subs(subs, [])
     post = transpose_submission_to_food_post(submission)
     em = transpose_food_post_to_embed(post)
     return post.id, em
@@ -153,16 +161,23 @@ def search_submission_from_subs(subs, query, ids):
 # this file is defined by a path to the script itself, followed by /servers/ 
 # then followed by the UUID for the server. This creates a unique path to each server's file
 def write_id_to_file(post_id, server):
-    p = os.getcwd() + derive_server_file_path(server)
+    p = derive_server_file_path(server)
     logger.info(p)
-    with open(os.getcwd() + derive_server_file_path(server), 'a') as file:
+
+    # if the individual server folder doesn't exist yet, need to create
+    # it before writing to it.
+    # massage the path to cut out the post_ids.txt portion
+    directory = p[0:p.rfind("/")]  # slice of everything up until the last '/' character
+    os.makedirs(directory, exist_ok=True)  # exist_ok silences errors for paths that already exist
+    
+    with open(p, 'a+') as file:
         file.write('{}\n'.format(post_id))
 
 
 # each server has it's own post_ids.txt file, stored in a separate directory.
 # the path to a specific server's file can be derived.
 def derive_server_file_path(server):
-    return f"/servers/{server}/post_ids.txt"
+    return f"{os.getcwd()}/servers/{server}/post_ids.txt"
 
 
 # take a list of strings and concatenate them
@@ -182,9 +197,9 @@ def get_list_of_subs():
 # function that reads from the post_ids.txt file and returns a list of ids.
 # the ids in the file are Reddit ids for given posts that the bot has already processed and used
 # Note: This assumes that the file exists in the same directory as this script
-def get_previous_post_ids():
+def get_previous_post_ids(server):
     try:
-        file = open(os.getcwd() + derive_server_file_path(server), 'r')
+        file = open(derive_server_file_path(server), 'r')
     except IOError as e:
         logger.error(repr(e))
         return []
@@ -254,9 +269,9 @@ def get_submission_from_subs(subs, already_posted):
     return random.choice(submissions)
 
 
-# wipes the contents of the post_ids text file
-def clear_ids():
-    open('post_ids.txt', 'w').close()  # the 'w' flag wipes the contents of the file
+# wipes the contents of the post_ids text file for a specific server
+def clear_ids(server):
+    open(derive_server_file_path(server), 'w+').close()  # the 'w' flag wipes the contents of the file
 
 
 # takes a query for searching and applies the necessary restrictions
@@ -290,10 +305,13 @@ def restart_bot():
 async def on_ready():
     logger.info(f"Username: {bot.user.name}")
     logger.info(f"ID: {bot.user.id}")
+    # make sure that the /servers/ directory exists
+    p = f"{os.getcwd()}/servers/"
+    os.makedirs(p, exist_ok=True)  # exist_ok silences errors for paths that already exist
 
 @bot.command(description="Post a new food picture into the channel", help=help_bot_random(), brief="Post a new food picture into the channel")
 async def new(context):
-    await context.send(embed=get_random_embedded_post(context.guild))  # pass the guild from the context in order to write the ID to a file
+    await context.send(embed=get_random_embedded_post(context.guild.id))  # pass the guild from the context in order to write the ID to a file
 
 @bot.command(description="Searches for a new food picture to post into the channel", help=help_bot_search(), usage="something I want to search separated by spaces", brief="Searches for a new food picture to post into the channel")
 async def search(context, *search_terms: str):
@@ -302,7 +320,7 @@ async def search(context, *search_terms: str):
         return
     terms = concat_strings(search_terms)
     query = build_query(terms)
-    em = search_posts(query, context.guild)
+    em = search_posts(query, context.guild.id)
     if em is None:
         await context.send(f"No titles containing {terms} found in defined subreddits")
         return
@@ -311,13 +329,15 @@ async def search(context, *search_terms: str):
         return
 
 @bot.command(description="Clears the stored list of previous posts", help=help_bot_clear(), brief="Clears the stored list of previous posts")
-@commands.check([pred_is_admin, pred_is_text_channel])  # restrict this command to Guild channels
+@commands.guild_only()
+@is_admin() # restrict this command to Guild channels
 async def clear(context):
-    clear_ids()
+    clear_ids(context.guild.id)
     await context.send("Successfully cleared contents")
 
 @bot.command(description="Restarts the bot on request", help=help_bot_restart(), brief="Restarts the bot on request")
-@commands.check([pred_is_admin, pred_is_text_channel])  # restrict this command to Guild channels
+@commands.guild_only()
+@is_admin() # restrict this command to Guild channels
 async def restart(context):
     if not restart_bot():
         await context.send("Error when attempting to restart bot. Please restart manually.")
