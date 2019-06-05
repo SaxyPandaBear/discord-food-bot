@@ -9,15 +9,18 @@ from food_post import FoodPost
 import logging
 import boto3
 import subprocess
+import os
+from predicates import is_admin
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
 
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
-file_handler = logging.FileHandler('/home/ec2-user/food_waifu/log.txt')  # TODO: figure out how to do this dynamically
+file_handler = logging.FileHandler(f'{os.getcwd()}/log.txt')  # TODO: figure out how to do this dynamically
 file_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+stream_handler.setFormatter(formatter)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
@@ -66,13 +69,18 @@ async def post_new_picture():
             # set stored_hour for next scheduled post
             stored_hour = current_time
 
-            em = get_random_embedded_post()  # get a single post, and post it to each server
+            post_id, em = get_random_embedded_post()  # get a single post, and post it to each server
             for guild in bot.guilds:  # each server that this bot is active in
                 channel = get_text_channel(guild)
+                # because we can't filter for posts that are already there in each server before
+                # generating the post, make the check here
+                if post_id in get_previous_post_ids(guild.id):
+                    # if the post is already there, generate a new one specific to this guild and return
+                    em = get_random_embedded_post(guild.id) # already written to file
+                    await channel.send(embed=em)
+                    continue
                 await channel.send(embed=em)  # post to the default text channel
-            # we successfully (hopefully) posted an image to each server this bot is in,
-            # but we don't want to post duplicates later.
-            # write all of the ids used to a file
+                write_id_to_file(post_id, guild.id)  # write the post ID to the server's file
         await asyncio.sleep(30)  # wait 30 seconds before checking again
 
 
@@ -87,21 +95,35 @@ def is_scheduled_time(current_time, stored_hour):
 
 
 # returns a discord.Embed with all of the necessary information for an embedded message
-def get_random_embedded_post():
+# this function accepts a guild parameter so that the ID can be written for the specific guild
+def get_random_embedded_post(server):
     subs = get_list_of_subs()
-    ids = get_previous_post_ids()
+    ids = get_previous_post_ids(server)
 
     submission = get_submission_from_subs(subs, ids)
     post = transpose_submission_to_food_post(submission)
     # need to write the id of this post into our file so we don't post it again later
-    write_id_to_file(post.id)
+    write_id_to_file(post.id, server)
     em = transpose_food_post_to_embed(post)
     return em
+
+# returns a discord.Embed with all of the necessary information for an embedded message
+# this function is parameterless, and as such returns both the embed object and the post ID from
+# the reddit post, so that the ID can be used afterwards. 
+# this function does not write the id to a file by itself
+def get_random_embedded_post():
+    subs = get_list_of_subs()
+    # ids = get_previous_post_ids()
+
+    submission = get_submission_from_subs(subs, [])
+    post = transpose_submission_to_food_post(submission)
+    em = transpose_food_post_to_embed(post)
+    return post.id, em
 
 
 # takes a search query and returns the first result within the given
 # subreddits. no duplicates are allowed
-def search_posts(query):
+def search_posts(query, server):
     subs = get_list_of_subs()
     ids = get_previous_post_ids()
 
@@ -111,15 +133,13 @@ def search_posts(query):
     if submission is None:
         return None
     
-    if submission.id not in ids:  # if it's not a duplicate, write the id
-        write_id_to_file(submission.id)
+    write_id_to_file(submission.id, server)
     post = transpose_submission_to_food_post(submission)
-    write_id_to_file(post.id)
     em = transpose_food_post_to_embed(post)
     return em
 
 
-# find the first, most relevant result from the search. include duplicates
+# find the first, most relevant result from the search. do not include duplicates
 def search_submission_from_subs(subs, query, ids):
     subs_list = '+'.join(subs)
     for submission in reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene'):
@@ -129,6 +149,7 @@ def search_submission_from_subs(subs, query, ids):
     try:
         # call to next() can raise StopIteration error if the list generator has no values left, meaning there were no results for this search
         result = next(reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene', time_filter='month'))
+        return result
     except StopIteration:
         logger.error('No results found for ' + query)
         return None
@@ -137,9 +158,26 @@ def search_submission_from_subs(subs, query, ids):
 # takes a Reddit submission ID and writes it to the file of previous post ids used.
 # the 'a' mode for open() will create a new file if it does not already exist,
 # and writes appending to the file as opposed to truncating.
-def write_id_to_file(post_id):
-    with open('post_ids.txt', 'a') as file:
+# this file is defined by a path to the script itself, followed by /servers/ 
+# then followed by the UUID for the server. This creates a unique path to each server's file
+def write_id_to_file(post_id, server):
+    p = derive_server_file_path(server)
+    logger.info(p)
+
+    # if the individual server folder doesn't exist yet, need to create
+    # it before writing to it.
+    # massage the path to cut out the post_ids.txt portion
+    directory = p[0:p.rfind("/")]  # slice of everything up until the last '/' character
+    os.makedirs(directory, exist_ok=True)  # exist_ok silences errors for paths that already exist
+    
+    with open(p, 'a+') as file:
         file.write('{}\n'.format(post_id))
+
+
+# each server has it's own post_ids.txt file, stored in a separate directory.
+# the path to a specific server's file can be derived.
+def derive_server_file_path(server):
+    return f"{os.getcwd()}/servers/{server}/post_ids.txt"
 
 
 # take a list of strings and concatenate them
@@ -159,10 +197,11 @@ def get_list_of_subs():
 # function that reads from the post_ids.txt file and returns a list of ids.
 # the ids in the file are Reddit ids for given posts that the bot has already processed and used
 # Note: This assumes that the file exists in the same directory as this script
-def get_previous_post_ids():
+def get_previous_post_ids(server):
     try:
-        file = open('post_ids.txt', 'r')
-    except IOError:
+        file = open(derive_server_file_path(server), 'r')
+    except IOError as e:
+        logger.error(repr(e))
         return []
     # if made it this far, no error occurred.
     ids = file.read().splitlines()  # readlines() returns strings with newline characters
@@ -230,9 +269,9 @@ def get_submission_from_subs(subs, already_posted):
     return random.choice(submissions)
 
 
-# wipes the contents of the post_ids text file
-def clear_ids():
-    open('post_ids.txt', 'w').close()  # the 'w' flag wipes the contents of the file
+# wipes the contents of the post_ids text file for a specific server
+def clear_ids(server):
+    open(derive_server_file_path(server), 'w+').close()  # the 'w' flag wipes the contents of the file
 
 
 # takes a query for searching and applies the necessary restrictions
@@ -241,14 +280,6 @@ def clear_ids():
 def build_query(terms):
     return 'title:"{}" self:no'.format(terms)
 
-
-# predicate used as a Check for the bot to verify from context if it should process the request
-async def is_admin(ctx):
-    return is_user_admin(ctx.channel, ctx.author)
-
-def is_user_admin(channel, user):
-    perms = user.permissions_in(channel)
-    return perms.administrator
 
 # restarts the bot using pm2's restart functionality.
 # if the bot restarts successfully, then the bot will have been
@@ -274,10 +305,13 @@ def restart_bot():
 async def on_ready():
     logger.info(f"Username: {bot.user.name}")
     logger.info(f"ID: {bot.user.id}")
+    # make sure that the /servers/ directory exists
+    p = f"{os.getcwd()}/servers/"
+    os.makedirs(p, exist_ok=True)  # exist_ok silences errors for paths that already exist
 
 @bot.command(description="Post a new food picture into the channel", help=help_bot_random(), brief="Post a new food picture into the channel")
 async def new(context):
-    await context.send(embed=get_random_embedded_post())
+    await context.send(embed=get_random_embedded_post(context.guild.id))  # pass the guild from the context in order to write the ID to a file
 
 @bot.command(description="Searches for a new food picture to post into the channel", help=help_bot_search(), usage="something I want to search separated by spaces", brief="Searches for a new food picture to post into the channel")
 async def search(context, *search_terms: str):
@@ -286,7 +320,7 @@ async def search(context, *search_terms: str):
         return
     terms = concat_strings(search_terms)
     query = build_query(terms)
-    em = search_posts(query)
+    em = search_posts(query, context.guild.id)
     if em is None:
         await context.send(f"No titles containing {terms} found in defined subreddits")
         return
@@ -295,13 +329,15 @@ async def search(context, *search_terms: str):
         return
 
 @bot.command(description="Clears the stored list of previous posts", help=help_bot_clear(), brief="Clears the stored list of previous posts")
-@commands.check(is_admin)
+@commands.guild_only()
+@is_admin() # restrict this command to Guild channels
 async def clear(context):
-    clear_ids()
+    clear_ids(context.guild.id)
     await context.send("Successfully cleared contents")
 
 @bot.command(description="Restarts the bot on request", help=help_bot_restart(), brief="Restarts the bot on request")
-@commands.check(is_admin)
+@commands.guild_only()
+@is_admin() # restrict this command to Guild channels
 async def restart(context):
     if not restart_bot():
         await context.send("Error when attempting to restart bot. Please restart manually.")
