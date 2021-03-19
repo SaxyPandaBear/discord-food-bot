@@ -6,6 +6,6 @@
 # 3. start pm2
 
 python bootstrap.py --commit
-pm2 start food_waifu.py --interpreter /usr/bin/python
-pm2 startup
-pm2 save
+cat auths.py
+cat subreddits.txt
+npm run start

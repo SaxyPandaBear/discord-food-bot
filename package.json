@@ -1,4 +1,7 @@
 {
+    "scripts": {
+        "start": "pm2-runtime start ecosystem.config.js --env production"
+    },
     "name": "food_waifu",
     "author": "Andrew Huynh",
     "license": "MIT",

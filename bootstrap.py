@@ -50,6 +50,7 @@ def write_data_to_auth(client_id, client_secret, discord_token):
             f.write(f"reddit_client_id = '{client_id}'\n")
             f.write(f"reddit_client_secret = '{client_secret}'\n")
             f.write(f"discord_token = '{discord_token}'")
+        print(f"Wrote data out to {auths_file_name}")
     else:
         print(f'Would have written {client_secret}, {client_secret}, {discord_token} to {auths_file_name}')
 
@@ -61,6 +62,7 @@ def write_data_to_subs(subreddits_str: str):
     if not dry_run:
         with open(subs_file_name, 'w') as f:
             f.writelines(subs)
+        print(f"Wrote data out to {subs_file_name}")
     else:
         print(f"Would have written {subs} to {subs_file_name}")
 
