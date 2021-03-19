@@ -72,7 +72,7 @@ async def post_new_picture():
                 # generating the post, make the check here
                 if post_id in get_previous_post_ids(guild.id):
                     # if the post is already there, generate a new one specific to this guild and return
-                    em = get_random_embedded_post(guild.id) # already written to file
+                    p_id, em = get_random_embedded_post(guild.id) # already written to file
                     await channel.send(embed=em)
                     continue
                 await channel.send(embed=em)  # post to the default text channel
@@ -298,7 +298,9 @@ async def on_ready():
 
 @bot.command(description="Post a new food picture into the channel", help=help_bot_random(), brief="Post a new food picture into the channel")
 async def new(context):
-    await context.send(embed=get_random_embedded_post(context.guild.id))  # pass the guild from the context in order to write the ID to a file
+    # pass the guild from the context in order to write the ID to a file
+    post_id, em = get_random_embedded_post(context.guild.id)
+    await context.send(embed=em)
 
 @bot.command(description="Searches for a new food picture to post into the channel", help=help_bot_search(), usage="something I want to search separated by spaces", brief="Searches for a new food picture to post into the channel")
 async def search(context, *search_terms: str):
