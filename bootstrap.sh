@@ -6,6 +6,8 @@
 # 3. start pm2
 
 python bootstrap.py
+yum -y update
+yum -y install nodejs
 npm install pm2
 pm2 start food_waifu.py --interpreter /usr/bin/python
 pm2 startup
