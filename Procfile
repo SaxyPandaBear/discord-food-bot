@@ -1,1 +1,1 @@
-worker: bootstrap.sh
+worker: bash bootstrap.sh
