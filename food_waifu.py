@@ -105,7 +105,7 @@ def get_random_embedded_post(server = None):
     if server is not None:
         write_id_to_file(post.id, server)
     em = transpose_food_post_to_embed(post)
-    return em
+    return post.id, em
 
 
 # takes a search query and returns the first result within the given
