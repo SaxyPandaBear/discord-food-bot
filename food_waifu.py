@@ -92,29 +92,20 @@ def is_scheduled_time(current_time, stored_hour):
 
 # returns a discord.Embed with all of the necessary information for an embedded message
 # this function accepts a guild parameter so that the ID can be written for the specific guild
-def get_random_embedded_post(server):
+def get_random_embedded_post(server = None):
     subs = get_list_of_subs()
-    ids = get_previous_post_ids(server)
+    if server is not None:
+        ids = get_previous_post_ids(server)
+    else:
+        ids = []
 
     submission = get_submission_from_subs(subs, ids)
     post = transpose_submission_to_food_post(submission)
     # need to write the id of this post into our file so we don't post it again later
-    write_id_to_file(post.id, server)
+    if server is not None:
+        write_id_to_file(post.id, server)
     em = transpose_food_post_to_embed(post)
     return em
-
-# returns a discord.Embed with all of the necessary information for an embedded message
-# this function is parameterless, and as such returns both the embed object and the post ID from
-# the reddit post, so that the ID can be used afterwards. 
-# this function does not write the id to a file by itself
-def get_random_embedded_post():
-    subs = get_list_of_subs()
-    # ids = get_previous_post_ids()
-
-    submission = get_submission_from_subs(subs, [])
-    post = transpose_submission_to_food_post(submission)
-    em = transpose_food_post_to_embed(post)
-    return post.id, em
 
 
 # takes a search query and returns the first result within the given
