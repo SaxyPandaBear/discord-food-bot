@@ -61,7 +61,8 @@ def write_data_to_subs(subreddits_str: str):
     subs = subreddits_str.split(',')
     if not dry_run:
         with open(subs_file_name, 'w') as f:
-            f.writelines(subs)
+            for sub in subs:
+                f.write(sub + '\n')
         print(f"Wrote data out to {subs_file_name}")
     else:
         print(f"Would have written {subs} to {subs_file_name}")
