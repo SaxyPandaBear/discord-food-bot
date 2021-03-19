@@ -1,0 +1,13 @@
+{
+    "name": "food_waifu",
+    "author": "Andrew Huynh",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/SaxyPandaBear/discord-food-bot.git"
+    },
+    "description": "discord bot that scrapes reddit",
+    "dependencies": {
+        "pm2": "^4.5.5"
+    }
+}
