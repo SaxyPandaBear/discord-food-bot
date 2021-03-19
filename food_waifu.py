@@ -53,9 +53,6 @@ def help_bot_restart():
 #=====================================================================================================================
 
 bot = commands.Bot(command_prefix="!food ", description=bot_description())
-reddit = praw.Reddit(client_id=auths.reddit_client_id,
-                     client_secret=auths.reddit_client_secret,
-                     user_agent='discord:food_waifu:v0.2')  # instantiate a new Reddit Client
 stored_hour = None  # use this to determine when to post hourly
 
 
@@ -125,7 +122,7 @@ def get_random_embedded_post():
 # subreddits. no duplicates are allowed
 def search_posts(query, server):
     subs = get_list_of_subs()
-    ids = get_previous_post_ids()
+    ids = get_previous_post_ids(server)
 
     submission = search_submission_from_subs(subs, query, ids)
     
@@ -347,6 +344,9 @@ logger.info("Creating looped task")
 bot.loop.create_task(post_new_picture())  # looped task
 logger.info("Finished creating looped task")
 try:
+    reddit = praw.Reddit(client_id=auths.reddit_client_id,
+                     client_secret=auths.reddit_client_secret,
+                     user_agent='discord:food_waifu:v0.2')  # instantiate a new Reddit Client
     bot.run(auths.discord_token)
 except Exception as e:
     logger.error(repr(e))

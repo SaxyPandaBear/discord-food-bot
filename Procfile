@@ -1,1 +1,1 @@
-worker: python food_waifu.py
+worker: bootstrap.sh
