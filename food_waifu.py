@@ -7,7 +7,6 @@ import random
 from time import gmtime
 from food_post import FoodPost
 import logging
-import boto3
 import subprocess
 import os
 from predicates import is_admin
