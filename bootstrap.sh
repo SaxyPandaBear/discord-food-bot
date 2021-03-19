@@ -5,7 +5,7 @@
 # 2. install pm2
 # 3. start pm2
 
-python bootstrap.py
-sudo pm2 start food_waifu.py --interpreter /usr/bin/python
-sudo pm2 startup
-sudo pm2 save
+python bootstrap.py --commit
+pm2 start food_waifu.py --interpreter /usr/bin/python
+pm2 startup
+pm2 save
