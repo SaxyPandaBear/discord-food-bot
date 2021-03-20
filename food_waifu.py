@@ -76,10 +76,14 @@ async def post_new_picture():
                 # generating the post, make the check here
                 if redis_connector.post_already_used(post_id):
                     # if the post is already there, generate a new one specific to this guild and return
-                    p_id, em = get_random_embedded_post(guild.id) # already written to file
-                    await channel.send(embed=em)
+                    p_id, diff_em = get_random_embedded_post(guild.id) # already written to file
+                    await channel.send(embed=diff_em)
+                    redis_connector.store_post_from_server(p_id, guild.id)
                     continue
                 await channel.send(embed=em)  # post to the default text channel
+            # after the post has been posted to all connected servers,
+            # persist the post
+            redis_connector.store_post_from_server(post_id, 'all') # right now, we don't use the value stored in Redis
         await asyncio.sleep(30)  # wait 30 seconds before checking again
 
 
