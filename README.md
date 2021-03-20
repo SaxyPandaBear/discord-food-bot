@@ -1,27 +1,34 @@
 Food Waifu
 ===========
 
-Discord bot that posts a picture of food once a day.
+Discord bot that posts a picture of food once an hour to all of the 
+connected Discord servers. This feature is done in the background,
+and the bot can handle search and random requests to post other content
+as well.
+
+The bot makes API calls to Reddit, using the application configurations
+in order to find a random submission to post. These posts are unique, and
+deduplicated in a Redis caching layer that the bot interfaces with.
+
+The bot is deployed via Heroku, and depends on the Heroku Redis add-on.
 
 ## Features
-
-`!food` is the command invoked in order to interact with this bot.
-
 `!food help` prints a description of the bot, as well as lists out options for usage.
 
 - `!food help [function]` prints a description of the given function, as well as example usage.
 
-`!food random` picks a random picture of food and posts it to the channel.
+`!food new` picks a random picture of food and posts it to the channel.
 
 `!food search [query]` takes in a search query and returns the first, most relevant result *that is not a duplicate*.
  
- `!food clear` clears the contents of the `post_ids.txt` file, which contains previously posted content. This allows reposted material.
+ `!food clear` flushes the Redis cache, allowing all previously posted content that is persisted to Redis to be posted again.
 
 ## Setup
 
 - Python 3.6.3
-- [discord.py](https://github.com/Rapptz/discord.py) v1.1.0
-- [PRAW](https://praw.readthedocs.io/en/latest/index.html) v6.2.0
+- [discord.py](https://github.com/Rapptz/discord.py) 1.6.0
+- [PRAW](https://praw.readthedocs.io/en/latest/index.html) 6.2.0
+- [redis](https://github.com/andymccurdy/redis-py) 3.5.3
 
 A simple way to get the required libraries is through Pip: `pip install -r requirements.txt`
 
@@ -32,13 +39,17 @@ On top of this, a file called `subreddits.txt` must be in the same directory as 
 file will contain a list of subreddit names that will be used by the bot to find submissions to post. This list 
 requires the items to be all lowercase, even if the subreddit itself uses capitalization.
 
+These files can be auto generated using the `bootstrap.sh` script 
+(this is used to bootstrap the application when deploying to Heroku).
+
 For example: for a subreddit /r/FooBar, the entry in the text file would simply be `foobar`
 
-This bot also generates a file that contains ids of submissions that have already been posted by the bot, in a file
-named `post_ids.txt`. This file should not be modified unless the user wants to flush out all of the entries in the 
-file and wants to start over without knowledge of previously posted material. The file functions as a safeguard against
-duplicate posts, i.e.: cross posts between subreddits.
+## Deduplication of Reddit posts
+On Heroku, we use the provided Redis cache to persist Reddit posts by their
+unique ID, and the Discord server ID where the post was sent to.
 
-## TODO:
+See `redis_connector.store_post_from_server` and its usages.
 
-- Save previously posted content separately for different servers.
+> It's important to note that despite the fact that this is branded as a food
+posting bot, the actuality is that it's generic enough that it can work with
+any subreddit that primarily has picture posts (i.e.: art subreddits).
