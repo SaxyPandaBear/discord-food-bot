@@ -135,7 +135,7 @@ def search_posts(query, server):
 def search_submission_from_subs(subs, query):
     subs_list = '+'.join(subs)
     for submission in reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene'):
-        if redis_connector.post_already_used(submission.id):
+        if not redis_connector.post_already_used(submission.id):
             return submission
     # if we didn't return in the iteration, just return the first relevant one this month
     try:
