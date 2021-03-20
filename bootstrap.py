@@ -29,7 +29,7 @@ def main():
         "REDDIT_CLIENT_ID" not in os.environ or \
         "REDDIT_CLIENT_SECRET" not in os.environ or \
         "DISCORD_TOKEN" not in os.environ:
-        logging.error('Missing required parameters to bootstrap application')
+        print('Missing required parameters to bootstrap application')
         sys.exit(1)
     else:
         subreddits = os.environ["SUBREDDITS"]

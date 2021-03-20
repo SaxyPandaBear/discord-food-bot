@@ -10,8 +10,10 @@ import logging
 import subprocess
 import os
 from predicates import is_admin
+import redis_connector
 
-logger = logging.getLogger('discord')
+
+logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 stream_handler = logging.StreamHandler()
@@ -23,6 +25,8 @@ stream_handler.setFormatter(formatter)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
+
+MAX_ALLOWED_SEARCH_SIZE = 500  # Not sure if the API actually lets me do
 
 #=====================================================================================================================
 # Static text helper functions
@@ -70,13 +74,12 @@ async def post_new_picture():
                 channel = get_text_channel(guild)
                 # because we can't filter for posts that are already there in each server before
                 # generating the post, make the check here
-                if post_id in get_previous_post_ids(guild.id):
+                if redis_connector.post_already_used(post_id):
                     # if the post is already there, generate a new one specific to this guild and return
                     p_id, em = get_random_embedded_post(guild.id) # already written to file
                     await channel.send(embed=em)
                     continue
                 await channel.send(embed=em)  # post to the default text channel
-                write_id_to_file(post_id, guild.id)  # write the post ID to the server's file
         await asyncio.sleep(30)  # wait 30 seconds before checking again
 
 
@@ -92,18 +95,18 @@ def is_scheduled_time(current_time, stored_hour):
 
 # returns a discord.Embed with all of the necessary information for an embedded message
 # this function accepts a guild parameter so that the ID can be written for the specific guild
+# If a server ID is passed in, then the post is persisted in Redis,
+# associated with the given server ID so that it doesn't get reposted
+# elsewhere later
 def get_random_embedded_post(server = None):
     subs = get_list_of_subs()
-    if server is not None:
-        ids = get_previous_post_ids(server)
-    else:
-        ids = []
 
-    submission = get_submission_from_subs(subs, ids)
+    submission = get_submission_from_subs(subs)
     post = transpose_submission_to_food_post(submission)
     # need to write the id of this post into our file so we don't post it again later
     if server is not None:
-        write_id_to_file(post.id, server)
+        # write_id_to_file(post.id, server)
+        redis_connector.store_post_from_server(post.id, server)
     em = transpose_food_post_to_embed(post)
     return post.id, em
 
@@ -112,25 +115,27 @@ def get_random_embedded_post(server = None):
 # subreddits. no duplicates are allowed
 def search_posts(query, server):
     subs = get_list_of_subs()
-    ids = get_previous_post_ids(server)
 
-    submission = search_submission_from_subs(subs, query, ids)
+    # This searches, and returns a new post that isn't already persisted
+    # to Redis
+    submission = search_submission_from_subs(subs, query)
     
     # if submission is None, then the search returned no results
     if submission is None:
         return None
     
-    write_id_to_file(submission.id, server)
+    # write_id_to_file(submission.id, server)
+    redis_connector.store_post_from_server(submission.id, server)
     post = transpose_submission_to_food_post(submission)
     em = transpose_food_post_to_embed(post)
     return em
 
 
 # find the first, most relevant result from the search. do not include duplicates
-def search_submission_from_subs(subs, query, ids):
+def search_submission_from_subs(subs, query):
     subs_list = '+'.join(subs)
     for submission in reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene'):
-        if submission.id not in ids:
+        if redis_connector.post_already_used(submission.id):
             return submission
     # if we didn't return in the iteration, just return the first relevant one this month
     try:
@@ -138,10 +143,12 @@ def search_submission_from_subs(subs, query, ids):
         result = next(reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene', time_filter='month'))
         return result
     except StopIteration:
-        logger.error('No results found for ' + query)
+        logger.error(f'No results found for {query} in subs: {subs}')
         return None
 
-
+# ***********************************************
+# DEPRECATED
+# ***********************************************
 # takes a Reddit submission ID and writes it to the file of previous post ids used.
 # the 'a' mode for open() will create a new file if it does not already exist,
 # and writes appending to the file as opposed to truncating.
@@ -160,7 +167,9 @@ def write_id_to_file(post_id, server):
     with open(p, 'a+') as file:
         file.write('{}\n'.format(post_id))
 
-
+# ***********************************************
+# DEPRECATED
+# ***********************************************
 # each server has it's own post_ids.txt file, stored in a separate directory.
 # the path to a specific server's file can be derived.
 def derive_server_file_path(server):
@@ -181,10 +190,13 @@ def get_list_of_subs():
     return list(filter(None, subs))  # just for sanity, purge empty strings before returning
 
 
+# ***********************************************
+# DEPRECATED
+# ***********************************************
 # function that reads from the post_ids.txt file and returns a list of ids.
 # the ids in the file are Reddit ids for given posts that the bot has already processed and used
 # Note: This assumes that the file exists in the same directory as this script
-def get_previous_post_ids(server):
+def get_previous_post_ids(server: str = ''):
     try:
         file = open(derive_server_file_path(server), 'r')
     except IOError as e:
@@ -239,26 +251,33 @@ def transpose_food_post_to_embed(post):
 # returns a random submission from the given list of subreddits
 # uses the top 20 hot submissions
 # has a list of ids for posts that were already posted.
-def get_submission_from_subs(subs, already_posted):
+def get_submission_from_subs(subs):
     submissions = []
-    subs_list = '+'.join(subs)
-    # should have a string like "a+b+c"
+    subs_list = '+'.join(subs)  # should have a string like "a+b+c"
     limit = 20  # this is the maximum number of submissions to poll
     for submission in reddit.subreddit(subs_list).hot(limit=limit):
-        if submission.id not in already_posted:
+        if not redis_connector.post_already_used(submission.id):
             submissions.append(submission)
     # need a check in case all of the submissions were already posted
+    hit_max_search = False
     while len(submissions) < 1:
+        if limit == MAX_ALLOWED_SEARCH_SIZE and not hit_max_search:
+            hit_max_search = True
+        if limit == MAX_ALLOWED_SEARCH_SIZE and hit_max_search:
+            raise Exception("Reached search limit, but couldn't find a new post")
         for submission in reddit.subreddit(subs_list).hot(limit=limit):
-            if submission.id not in already_posted:
+            if not redis_connector.post_already_used(submission.id):
                 submissions.append(submission)
-        limit *= 2  # at some point either we will get rate limited, or we'll find a new post
+        # at some point either we will get rate limited, or we'll find a new post
+        # by including a max search size, a big TODO would be to actually paginate
+        # the search... but oh well
+        limit = min(limit * 2, MAX_ALLOWED_SEARCH_SIZE)
     return random.choice(submissions)
 
 
-# wipes the contents of the post_ids text file for a specific server
-def clear_ids(server):
-    open(derive_server_file_path(server), 'w+').close()  # the 'w' flag wipes the contents of the file
+# delete all of the records stored in Redis
+def clear_ids():
+    redis_connector.flush_all_records()
 
 
 # takes a query for searching and applies the necessary restrictions
@@ -292,13 +311,9 @@ def restart_bot():
 async def on_ready():
     logger.info(f"Username: {bot.user.name}")
     logger.info(f"ID: {bot.user.id}")
-    # make sure that the /servers/ directory exists
-    p = f"{os.getcwd()}/servers/"
-    os.makedirs(p, exist_ok=True)  # exist_ok silences errors for paths that already exist
 
 @bot.command(description="Post a new food picture into the channel", help=help_bot_random(), brief="Post a new food picture into the channel")
 async def new(context):
-    # pass the guild from the context in order to write the ID to a file
     post_id, em = get_random_embedded_post(context.guild.id)
     await context.send(embed=em)
 
@@ -321,7 +336,7 @@ async def search(context, *search_terms: str):
 @commands.guild_only()
 @is_admin() # restrict this command to Guild channels
 async def clear(context):
-    clear_ids(context.guild.id)
+    clear_ids()
     await context.send("Successfully cleared contents")
 
 @bot.command(description="Restarts the bot on request", help=help_bot_restart(), brief="Restarts the bot on request")

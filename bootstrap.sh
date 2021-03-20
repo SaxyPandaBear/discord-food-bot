@@ -6,6 +6,6 @@
 # 3. start pm2
 
 python bootstrap.py --commit
-cat auths.py
-cat subreddits.txt
+# cat auths.py
+# cat subreddits.txt
 npm run start
