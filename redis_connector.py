@@ -8,7 +8,7 @@ from typing import Optional
 import redis
 import logging
 
-r = redis.from_url(os.environ['REDIS_URL'])
+r = redis.from_url(os.environ['REDIS_URL'], decode_responses=True)
 
 
 # store the post_id, and the server it's associated with
