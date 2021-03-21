@@ -1,7 +1,7 @@
 # returns a formatted string that describes the bot's usage
 def bot_description() -> str:
     return 'This bot posts pictures of food on request, and on an hourly schedule.\n' \
-           'Read more about this bot, or contribute to it at https://github.com/SaxyPandaBear/food_waifu'
+           'Read more about this bot, or contribute to it at https://github.com/SaxyPandaBear/discord-food-bot'
 
 
 # returns a string that details the usage of the 'random' function of the bot
