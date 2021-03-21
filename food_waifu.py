@@ -11,6 +11,7 @@ import logging
 import subprocess
 import os
 from predicates import is_admin
+from help_commands import *
 import redis_connector
 
 
@@ -30,32 +31,6 @@ logger.addHandler(stream_handler)
 
 MAX_ALLOWED_SEARCH_SIZE = 500  # Not sure if the API actually lets me do this
 
-#=====================================================================================================================
-# Static text helper functions
-# returns a formatted string that describes the bot's usage
-def bot_description() -> str:
-    return 'This bot posts pictures of food on request, and on an hourly schedule.\n' \
-           'Read more about this bot, or contribute to it at https://github.com/SaxyPandaBear/food_waifu'
-
-# returns a string that details the usage of the 'random' function of the bot
-def help_bot_random() -> str:
-    return 'The bot posts a random embedded Discord message with a picture of food, sourced from Reddit.'
-
-# returns a string that details the usage of the 'search' function of the bot
-def help_bot_search() -> str:
-    return 'The bot takes in search terms and posts the first picture it finds ' \
-           'based on those terms. If the picture has already been posted, the bot attempts ' \
-           'to post the next picture, until it exhausts all of its options.'
-
-# returns a string that details the usage of the 'clear' function of the bot
-def help_bot_clear() -> str:
-    return 'The bot wipes the contents of the file that keeps track of all of the ' \
-           'previously posted food items. *Only an administrator in the channel can perform this*'
-
-# returns a string that details the usage of the 'restart' function of the bot
-def help_bot_restart() -> str:
-    return 'The bot restarts itself. *Only an administrator in the channel can perform this*'
-#=====================================================================================================================
 
 bot = commands.Bot(command_prefix="!food ", description=bot_description())
 stored_hour = None  # use this to determine when to post hourly
@@ -304,6 +279,14 @@ async def clear(context):
 async def restart(context):
     if not restart_bot():
         await context.send("Error when attempting to restart bot. Please restart manually.")
+
+@bot.command(description="Print all stored Redis keys to log", help=help_bot_list_keys(), brief="Print all stored Redis keys to log")
+@is_admin()
+async def list_keys(context):
+    if redis_connector.enumerate_keys(logger):
+        await context.send("Successfully printed Redis keys to log")
+    else:
+        await context.send("Error occurred when printing Redis keys to log")
 
 # Starts the discord client
 logger.info("Creating looped task")

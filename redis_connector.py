@@ -39,3 +39,12 @@ def flush_all_records(logger: Optional[logging.Logger] = None):
             logger.info('Successfully flushed all keys in Redis')
         else:
             logger.warn('Did not successfully flush all keys in Redis')
+
+def enumerate_keys(logger: logging.Logger) -> bool:
+    try:
+        res = r.keys()
+        logger.info(', '.join(res))
+        return True
+    except Exception as e:
+        logger.error(repr(e))
+        return False
