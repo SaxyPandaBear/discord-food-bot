@@ -32,7 +32,14 @@ logger.addHandler(stream_handler)
 MAX_ALLOWED_SEARCH_SIZE = 500  # Not sure if the API actually lets me do this
 
 
+# Instantiate the bot
+bot_presence = discord.Activity(
+    name='Good food Reddit posts', 
+    type=discord.ActivityType.watching,
+    details='Contribute at https://github.com/SaxyPandaBear/discord-food-bot')
 bot = commands.Bot(command_prefix="!food ", description=bot_description())
+
+
 stored_hour = None  # use this to determine when to post hourly
 
 
