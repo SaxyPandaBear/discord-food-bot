@@ -15,4 +15,4 @@ class FoodPost:
         return '{0} : {1}'.format(self.title, self.post_url)
 
     def __repr__(self):
-        return __str__()
+        return self.__str__()

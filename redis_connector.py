@@ -4,19 +4,38 @@
 # This probably could have been put in the main script, but
 # I think it's already too messy.
 import os
+from typing import Optional
 import redis
+import logging
 
 r = redis.from_url(os.environ['REDIS_URL'])
 
 
 # store the post_id, and the server it's associated with
-def store_post_from_server(post_id: str, server: str) -> bool:
-    return r.set(post_id, server)
+def store_post_from_server(post_id: str, server: str, logger: Optional[logging.Logger] = None) -> bool:
+    res = r.set(post_id, server)
+    if logger is not None:
+        if res:
+            logger.info(f'Successfully persisted {post_id} -> {server} to Redis')
+        else:
+            logger.warn(f'Failed to persist {post_id} -> {server} to Redis')
+    return res
 
 
-def post_already_used(post_id: str) -> bool:
-    return r.exists(post_id) > 0
+def post_already_used(post_id: str, logger: Optional[logging.Logger] = None) -> bool:
+    res = r.exists(post_id) > 0
+    if logger is not None:
+        if res:
+            logger.info(f'Found {post_id} already in Redis')
+        else:
+            logger.info(f'Key {post_id} not currently in Redis')
+    return res
 
 
-def flush_all_records():
-    r.flushall(asynchronous=True)
+def flush_all_records(logger: Optional[logging.Logger] = None):
+    res = r.flushall(asynchronous=False)
+    if logger is not None:
+        if res:
+            logger.info('Successfully flushed all keys in Redis')
+        else:
+            logger.warn('Did not successfully flush all keys in Redis')
