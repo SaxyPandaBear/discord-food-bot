@@ -252,12 +252,12 @@ async def on_ready():
     logger.info(f"Username: {bot.user.name}")
     logger.info(f"ID: {bot.user.id}")
 
-@bot.command(description="Post a new food picture into the channel", help=help_bot_random(), brief="Post a new food picture into the channel")
+@bot.command(description="Post a new food picture into the channel", help=help_bot_random(), brief="Post food picture")
 async def new(context):
     post_id, em = get_random_embedded_post(context.guild.id)
     await context.send(embed=em)
 
-@bot.command(description="Searches for a new food picture to post into the channel", help=help_bot_search(), usage="something I want to search separated by spaces", brief="Searches for a new food picture to post into the channel")
+@bot.command(description="Searches for a new food picture to post into the channel", help=help_bot_search(), usage="something I want to search separated by spaces", brief="Search for new food picture")
 async def search(context, *search_terms: str):
     if len(search_terms) < 1:
         await context.send("Specify at least one term to search for")
@@ -272,31 +272,31 @@ async def search(context, *search_terms: str):
         await context.send(embed=em)
         return
 
-@bot.command(description="Clears the stored list of previous posts", help=help_bot_clear(), brief="Clears the stored list of previous posts")
+@bot.command(description="Clears all of the Reddit post IDs that are persisted for deduplication", help=help_bot_clear(), brief="Flushes Redis keys")
 @commands.guild_only()
 @is_admin() # restrict this command to Guild channels
 async def clear(context):
     clear_ids()
     await context.send("Successfully cleared contents")
 
-@bot.command(description="Restarts the bot on request", help=help_bot_restart(), brief="Restarts the bot on request")
+@bot.command(description="Restarts the bot on request", help=help_bot_restart(), brief="Restarts bot")
 @commands.guild_only()
 @is_admin() # restrict this command to Guild channels
 async def restart(context):
     if not restart_bot():
         await context.send("Error when attempting to restart bot. Please restart manually.")
 
-@bot.command(description="Print all stored Redis keys to log", help=help_bot_list_keys(), brief="Print all stored Redis keys to log")
+@bot.command(description="Print all stored Redis keys to log", help=help_bot_list_keys(), brief="Logs Redis keys")
 @is_admin()
-async def list_keys(context):
+async def keys(context):
     if redis_connector.enumerate_keys(logger):
         await context.send("Successfully printed Redis keys to log")
     else:
         await context.send("Error occurred when printing Redis keys to log")
 
-@bot.command(description="Get and print the server where a Reddit submission was posted", help=help_bot_fetch_value_from_redis(), brief="Print the server where a Reddit submission was posted")
+@bot.command(description="Get and print the server where a Reddit submission was posted", help=help_bot_fetch_value_from_redis(), brief="Print Redis key-value pair", usage="some_reddit_post_id")
 @is_admin()
-async def fetch_value_from_redis(context, *ids: str):
+async def fetch(context, *ids: str):
     if len(ids) != 1:
         await context.send("Only allowed to fetch one value from Redis at a time.")
         return
