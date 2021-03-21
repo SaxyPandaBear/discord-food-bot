@@ -34,7 +34,7 @@ MAX_ALLOWED_SEARCH_SIZE = 500  # Not sure if the API actually lets me do this
 
 # Instantiate the bot
 bot_presence = discord.Activity(
-    name='Finding good food Reddit posts. https://github.com/SaxyPandaBear/discord-food-bot',
+    name='Finding good food Reddit posts at https://github.com/SaxyPandaBear/discord-food-bot',
     type=discord.ActivityType.playing)
 bot = commands.Bot(command_prefix="!food ", description=bot_description(), activity=bot_presence)
 
@@ -293,6 +293,18 @@ async def list_keys(context):
         await context.send("Successfully printed Redis keys to log")
     else:
         await context.send("Error occurred when printing Redis keys to log")
+
+@bot.command(description="Get and print the server where a Reddit submission was posted", help=help_bot_fetch_value_from_redis(), brief="Print the server where a Reddit submission was posted")
+@is_admin()
+async def fetch_value_from_redis(context, *ids: str):
+    if len(ids) != 1:
+        await context.send("Only allowed to fetch one value from Redis at a time.")
+        return
+    val = redis_connector.get_value()
+    if val is not None:
+        await context.send(f"{ids[0]} -> {val}")
+    else:
+        await context.send(f"Couldn't find key {ids[0]} in Redis.")
 
 # Starts the discord client
 logger.info("Creating looped task")

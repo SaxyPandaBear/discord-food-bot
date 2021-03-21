@@ -22,6 +22,7 @@ def store_post_from_server(post_id: str, server: str, logger: Optional[logging.L
     return res
 
 
+# check if a key is already persisted in Redis
 def post_already_used(post_id: str, logger: Optional[logging.Logger] = None) -> bool:
     res = r.exists(post_id) > 0
     if logger is not None:
@@ -32,6 +33,7 @@ def post_already_used(post_id: str, logger: Optional[logging.Logger] = None) -> 
     return res
 
 
+# delete all of the keys stored in Redis
 def flush_all_records(logger: Optional[logging.Logger] = None):
     res = r.flushall(asynchronous=False)
     if logger is not None:
@@ -40,6 +42,9 @@ def flush_all_records(logger: Optional[logging.Logger] = None):
         else:
             logger.warn('Did not successfully flush all keys in Redis')
 
+
+# for debugging purposes only, print all of the existing
+# keys stored in Redis
 def enumerate_keys(logger: logging.Logger) -> bool:
     try:
         res = r.keys()
@@ -48,3 +53,9 @@ def enumerate_keys(logger: logging.Logger) -> bool:
     except Exception as e:
         logger.error(repr(e))
         return False
+
+
+# for debugging purposes only, get the server associated
+# with a Reddit submission ID
+def get_value(post_id: str) -> Optional[str]:
+    return r.get(post_id)
