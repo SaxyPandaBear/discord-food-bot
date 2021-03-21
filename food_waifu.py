@@ -151,7 +151,7 @@ def get_list_of_subs() -> List[str]:
 
 # takes a Guild object and returns the first channel that the bot has access to post to.
 # this is determined by using the Channel class's `permissions_for(..)` function
-def get_text_channel(guild) -> Optional[discord.Channel]:
+def get_text_channel(guild):
     member = guild.me
     for channel in guild.channels:
         if isinstance(channel, discord.TextChannel) and channel.permissions_for(member).send_messages:
