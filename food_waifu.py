@@ -34,11 +34,8 @@ MAX_ALLOWED_SEARCH_SIZE = 500  # Not sure if the API actually lets me do this
 
 # Instantiate the bot
 bot_presence = discord.Activity(
-    name='Finding good food Reddit posts',
-    state='Something goes here for state',
-    url='https://github.com/SaxyPandaBear/discord-food-bot',
-    type=discord.ActivityType.playing,
-    details='Contribute at https://github.com/SaxyPandaBear/discord-food-bot')
+    name='Finding good food Reddit posts. https://github.com/SaxyPandaBear/discord-food-bot',
+    type=discord.ActivityType.playing)
 bot = commands.Bot(command_prefix="!food ", description=bot_description(), activity=bot_presence)
 
 
