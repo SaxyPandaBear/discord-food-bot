@@ -37,7 +37,7 @@ bot_presence = discord.Activity(
     name='Finding good food Reddit posts',
     state='Something goes here for state',
     url='https://github.com/SaxyPandaBear/discord-food-bot',
-    type=discord.ActivityType.custom,
+    type=discord.ActivityType.streaming,
     details='Contribute at https://github.com/SaxyPandaBear/discord-food-bot')
 bot = commands.Bot(command_prefix="!food ", description=bot_description(), activity=bot_presence)
 
