@@ -240,11 +240,12 @@ async def fetch(context, *ids: str):
     if len(ids) != 1:
         await context.send("Only allowed to fetch one value from Redis at a time.")
         return
-    val = redis_connector.get_value()
+    reddit_id = ids[0]
+    val = redis_connector.get_value(reddit_id)
     if val is not None:
-        await context.send(f"{ids[0]} -> {val}")
+        await context.send(f"{reddit_id} -> {val}")
     else:
-        await context.send(f"Couldn't find key {ids[0]} in Redis.")
+        await context.send(f"Couldn't find key {reddit_id} in Redis.")
 
 # Starts the discord client
 logger.info("Creating looped task")
