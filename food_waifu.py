@@ -206,7 +206,7 @@ async def search(context, *search_terms: str):
     query = build_query(search_terms)
     em = search_posts(query, context.guild.id)
     if em is None:
-        await context.send(f"No titles containing {terms} found in defined subreddits")
+        await context.send(f"No titles containing {search_terms} found in defined subreddits")
         return
     else:
         await context.send(embed=em)
