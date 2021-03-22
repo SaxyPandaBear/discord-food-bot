@@ -31,7 +31,7 @@ class FoodPost:
 
     # Take a Reddit submission object, and transform that into a FoodPost
     @staticmethod
-    def from_submission(submission) -> FoodPost:
+    def from_submission(submission):
         sub_id = submission.id
         url = submission.url
         # permalink does not give the full URL, so build it instead.
