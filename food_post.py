@@ -22,7 +22,6 @@ class FoodPost:
 
     # Transforms this FoodPost object into the discord Embed object that
     # should be posted by the bot.
-    @classmethod
     def to_embed(self) -> discord.Embed:
         em = discord.Embed(title=self.title, description=self.post_url, color=self.color)
         if self.image_url != '':
