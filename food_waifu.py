@@ -38,7 +38,7 @@ subs_list = read_subreddits_from_env()
 
 # Instantiate the bot
 bot_presence = discord.Activity(
-    name=f"Serving good food from {'and '.join(subs_list)}",
+    name=f"Serving good food from {' and '.join(subs_list)}",
     type=discord.ActivityType.playing)
 bot = commands.Bot(command_prefix="!food ", description=bot_description(), activity=bot_presence)
 
