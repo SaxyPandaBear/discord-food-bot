@@ -31,20 +31,20 @@ logger.addHandler(stream_handler)
 
 
 MAX_ALLOWED_SEARCH_SIZE = 500  # Not sure if the API actually lets me do this
+# read a list of subreddits from the environment, and use that
+# for the search criteria
+subs_list = read_subreddits_from_env()
 
 
 # Instantiate the bot
 bot_presence = discord.Activity(
-    name='Finding good food Reddit posts',
+    name=f"Serving good food from {'and '.join(subs_list)}",
     type=discord.ActivityType.playing)
 bot = commands.Bot(command_prefix="!food ", description=bot_description(), activity=bot_presence)
 
 
 # use this to determine when to post hourly
 stored_hour = None
-# read a list of subreddits from the environment, and use that
-# for the search criteria
-subs_list = read_subreddits_from_env()
 
 
 # function that posts a picture to the server on a timer
