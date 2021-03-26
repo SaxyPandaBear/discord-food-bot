@@ -23,7 +23,7 @@ prawcore==1.0.1
 pyasn1==0.4.8
 pycodestyle==2.6.0
 python-dateutil==2.8.0
-PyYAML==5.3.1
+PyYAML==5.4
 redis==3.5.3
 requests==2.21.0
 rsa==4.5
