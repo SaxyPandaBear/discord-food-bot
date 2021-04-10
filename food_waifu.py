@@ -9,11 +9,17 @@ from time import gmtime
 from food_post import FoodPost
 import logging
 import subprocess
-import os
 from predicates import is_admin
-from help_commands import *
+from help_commands import bot_description, \
+    help_bot_list_keys, help_bot_clear, \
+    help_bot_fetch_value_from_redis, \
+    help_bot_random, \
+    help_bot_restart, \
+    help_bot_search
 import redis_connector
-from utility import *
+from utility import read_subreddits_from_env, \
+    get_text_channel, \
+    build_query
 
 
 logger = logging.getLogger()
@@ -21,12 +27,8 @@ logger.setLevel(logging.INFO)
 
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
-# file_handler = logging.FileHandler(f'{os.getcwd()}/log.txt')  # TODO: figure out how to do this dynamically
-# file_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 stream_handler.setFormatter(formatter)
-# file_handler.setFormatter(formatter)
-# logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
 
@@ -64,14 +66,14 @@ async def post_new_picture():
                 # generating the post, make the check here
                 if redis_connector.post_already_used(post_id, logger):
                     # if the post is already there, generate a new one specific to this guild and return
-                    p_id, diff_em = get_random_embedded_post(guild.id) # already written to file
+                    p_id, diff_em = get_random_embedded_post(guild.id)  # already written to file
                     await channel.send(embed=diff_em)
                     redis_connector.store_post_from_server(p_id, guild.id, logger)
                     continue
                 await channel.send(embed=em)  # post to the default text channel
             # after the post has been posted to all connected servers,
             # persist the post
-            redis_connector.store_post_from_server(post_id, 'all', logger) # right now, we don't use the value stored in Redis
+            redis_connector.store_post_from_server(post_id, 'all', logger)  # right now, we don't use the value stored in Redis
         await asyncio.sleep(30)  # wait 30 seconds before checking again
 
 
@@ -90,7 +92,7 @@ def is_scheduled_time(current_time: int, stored_hour: Optional[int] = None) -> b
 # If a server ID is passed in, then the post is persisted in Redis,
 # associated with the given server ID so that it doesn't get reposted
 # elsewhere later
-def get_random_embedded_post(server = None) -> Tuple[str, discord.Embed]:
+def get_random_embedded_post(server=None) -> Tuple[str, discord.Embed]:
     submission = get_submission_from_subs(subs_list)
     post = FoodPost.from_submission(submission)
     # need to write the id of this post into our file so we don't post it again later
@@ -106,11 +108,9 @@ def search_posts(query: str, server: str) -> Optional[discord.Embed]:
     # This searches, and returns a new post that isn't already persisted
     # to Redis
     submission = search_submission_from_subs(subs_list, query)
-    
     # if submission is None, then the search returned no results
     if submission is None:
         return None
-    
     # write_id_to_file(submission.id, server)
     redis_connector.store_post_from_server(submission.id, server, logger)
     post = FoodPost.from_submission(submission)
@@ -125,15 +125,20 @@ def search_submission_from_subs(subs: List[str], query: str):
             return submission
     # if we didn't return in the iteration, just return the first relevant one this month
     try:
-        # call to next() can raise StopIteration error if the list generator has no values left, meaning there were no results for this search
-        result = next(reddit.subreddit(subs_list).search(query=query, sort='relevance', syntax='lucene', time_filter='month'))
+        # call to next() can raise StopIteration error if the list generator has no values left,
+        # meaning there were no results for this search
+        result = next(reddit.subreddit(subs_list).search(
+            query=query,
+            sort='relevance',
+            syntax='lucene',
+            time_filter='month'))
         return result
     except StopIteration:
         logger.error(f'No results found for {query} in subs: {subs}')
         return None
 
 
-# because a submission's URL can either be the link to a hosted image, 
+# because a submission's URL can either be the link to a hosted image,
 # or to the comments section of it's own submission, let's try to get
 # the actual image every time.
 def get_image_url(submission) -> str:
@@ -178,7 +183,7 @@ def restart_bot():
     # the output of the above command would be in the form of "[ id ]" with the intended whitespace illustrated
     # need to strip the characters around the ID
     pm2_id = id_output.stdout.decode('utf-8').replace("[", "").replace("]", "").strip()
-    if len(pm2_id) == 0: 
+    if len(pm2_id) == 0:
         logger.error('Could not find pm2 ID for this bot')
         return False
     logger.info(pm2_id)
@@ -193,12 +198,23 @@ async def on_ready():
     logger.info(f"Username: {bot.user.name}")
     logger.info(f"ID: {bot.user.id}")
 
-@bot.command(description="Post a new food picture into the channel", help=help_bot_random(), brief="Post food picture")
+
+@bot.command(
+    description="Post a new food picture into the channel",
+    help=help_bot_random(),
+    brief="Post food picture"
+)
 async def new(context):
     post_id, em = get_random_embedded_post(context.guild.id)
     await context.send(embed=em)
 
-@bot.command(description="Searches for a new food picture to post into the channel", help=help_bot_search(), usage="something I want to search separated by spaces", brief="Search for new food picture")
+
+@bot.command(
+    description="Searches for a new food picture to post into the channel",
+    help=help_bot_search(),
+    usage="something I want to search separated by spaces",
+    brief="Search for new food picture"
+)
 async def search(context, *search_terms: str):
     if len(search_terms) < 1:
         await context.send("Specify at least one term to search for")
@@ -212,19 +228,30 @@ async def search(context, *search_terms: str):
         await context.send(embed=em)
         return
 
-@bot.command(description="Clears all of the Reddit post IDs that are persisted for deduplication", help=help_bot_clear(), brief="Flushes Redis keys")
-@commands.guild_only()
-@is_admin() # restrict this command to Guild channels
+
+@bot.command(
+    description="Clears all of the Reddit post IDs that are persisted for deduplication",
+    help=help_bot_clear(),
+    brief="Flushes Redis keys"
+)
+@commands.guild_only()  # restrict this command to Guild channels
+@is_admin()
 async def clear(context):
     redis_connector.flush_all_records(logger)
     await context.send("Successfully cleared contents")
 
-@bot.command(description="Restarts the bot on request", help=help_bot_restart(), brief="Restarts bot")
-@commands.guild_only()
-@is_admin() # restrict this command to Guild channels
+
+@bot.command(
+    description="Restarts the bot on request",
+    help=help_bot_restart(),
+    brief="Restarts bot"
+)
+@commands.guild_only()  # restrict this command to Guild channels
+@is_admin()
 async def restart(context):
     if not restart_bot():
         await context.send("Error when attempting to restart bot. Please restart manually.")
+
 
 @bot.command(description="Print all stored Redis keys to log", help=help_bot_list_keys(), brief="Logs Redis keys")
 @is_admin()
@@ -234,7 +261,13 @@ async def keys(context):
     else:
         await context.send("Error occurred when printing Redis keys to log")
 
-@bot.command(description="Get and print the server where a Reddit submission was posted", help=help_bot_fetch_value_from_redis(), brief="Print Redis key-value pair", usage="some_reddit_post_id")
+
+@bot.command(
+    description="Get and print the server where a Reddit submission was posted",
+    help=help_bot_fetch_value_from_redis(),
+    brief="Print Redis key-value pair",
+    usage="some_reddit_post_id"
+)
 @is_admin()
 async def fetch(context, *ids: str):
     if len(ids) != 1:
@@ -247,14 +280,18 @@ async def fetch(context, *ids: str):
     else:
         await context.send(f"Couldn't find key {reddit_id} in Redis.")
 
+
 # Starts the discord client
 logger.info("Creating looped task")
 bot.loop.create_task(post_new_picture())  # looped task
 logger.info("Finished creating looped task")
 try:
-    reddit = praw.Reddit(client_id=auths.reddit_client_id,
-                     client_secret=auths.reddit_client_secret,
-                     user_agent='discord:food_waifu:v0.2')  # instantiate a new Reddit Client
+    # instantiate a new Reddit Client
+    reddit = praw.Reddit(
+        client_id=auths.reddit_client_id,
+        client_secret=auths.reddit_client_secret,
+        user_agent='discord:food_waifu:v0.2'
+    )
     bot.run(auths.discord_token)
 except Exception as e:
     logger.error(repr(e))

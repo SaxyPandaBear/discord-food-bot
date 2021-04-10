@@ -27,6 +27,21 @@ any subreddit that primarily has picture posts (i.e.: art subreddits).
  
  `!food clear` flushes the Redis cache, allowing all previously posted content that is persisted to Redis to be posted again.
 
+## Post Deduplication
+Currently this is deployed on Heroku, and utilizes Heroku Redis in order to 
+store the Reddit IDs that are posted. This is used as a LRU cache, such that 
+the oldest ID gets evicted when the cache is at capacity. This helps for 
+deduplication, because the newer post will evict a post that has been posted 
+a while ago (hopefully). The data is stored in Redis in this pattern:
+```
+abc123 -> discord_server1
+bcd234 -> all
+cde345 -> discord_server2
+```
+In this way, we can store somewhat useful information on which Discord server
+each Reddit post is sent to. The `all` value denotes that the given Reddit ID is
+sent to all of the Discord servers via the scheduled event loop task.
+
 ## Setup
 
 - Python 3.6.3
