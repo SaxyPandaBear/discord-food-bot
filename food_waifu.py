@@ -216,10 +216,12 @@ async def new(context):
     brief="Search for new food picture"
 )
 async def search(context, *search_terms: str):
-    if len(search_terms) < 1:
+    try:
+        query = build_query(search_terms)
+    except ValueError:
+        logger.exception('Exception occurred building search query')
         await context.send("Specify at least one term to search for")
         return
-    query = build_query(search_terms)
     em = search_posts(query, context.guild.id)
     if em is None:
         await context.send(f"No titles containing {search_terms} found in defined subreddits")
