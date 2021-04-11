@@ -11,11 +11,11 @@ from discord import TextChannel
 # If the value is empty, raises an Exception
 def read_subreddits_from_env() -> List[str]:
     if "SUBREDDITS" not in os.environ:
-        raise Exception('SUBREDDITS is not defined as an environment variable')
+        raise LookupError('SUBREDDITS is not defined as an environment variable')
     else:
         subs_str = os.environ["SUBREDDITS"]
         if len(subs_str) < 1:
-            raise Exception('SUBREDDITS value cannot be an empty string')
+            raise ValueError('SUBREDDITS value cannot be an empty string')
         return subs_str.split(',')
 
 
@@ -39,5 +39,9 @@ def get_text_channel(guild) -> Optional[TextChannel]:
 # we want to limit our searches to just the title of the post, and also
 # exclude all self posts (text posts)
 def build_query(search_terms: List[str]) -> str:
+    if search_terms is None:
+        raise ValueError('Cannot search on no terms')
+    if len(search_terms) < 1:
+        raise ValueError('Cannot search on no terms')
     joined = ' '.join(search_terms)
     return f'title:"{joined}" self:no'

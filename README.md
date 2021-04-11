@@ -42,6 +42,8 @@ In this way, we can store somewhat useful information on which Discord server
 each Reddit post is sent to. The `all` value denotes that the given Reddit ID is
 sent to all of the Discord servers via the scheduled event loop task.
 
+See `redis_connector.store_post_from_server` and its usages.
+
 ## Setup
 
 - Python 3.6.3
@@ -72,8 +74,20 @@ These files can be auto generated using the `bootstrap.sh` script
 
 For example: for a subreddit /r/FooBar, the entry in the text file would simply be `foobar`
 
-## Deduplication of Reddit posts
-On Heroku, we use the provided Redis cache to persist Reddit posts by their
-unique ID, and the Discord server ID where the post was sent to.
+## Developing
+When adding new features, make sure that you cover tests and linting locally
+to save yourself the trouble of it failing in the CICD pipeline.
 
-See `redis_connector.store_post_from_server` and its usages.
+### Testing
+```
+pytest
+```
+
+### Linting
+```
+# Syntax errors
+flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+# Lint warnings
+flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude auths.py
+```
