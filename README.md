@@ -1,5 +1,7 @@
-Food Waifu
-===========
+discord-food-bot
+================
+
+![ci](https://github.com/SaxyPandaBear/discord-food-bot/actions/workflows/main.yml/badge.svg) [![codecov](https://codecov.io/gh/SaxyPandaBear/discord-food-bot/branch/master/graph/badge.svg?token=GSDBRQNE4P)](https://codecov.io/gh/SaxyPandaBear/discord-food-bot)
 
 Discord bot that posts a picture of food once an hour to all of the 
 connected Discord servers. This feature is done in the background,
