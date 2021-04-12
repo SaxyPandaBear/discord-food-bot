@@ -9,6 +9,8 @@ import pytest
 #     post_already_used, \
 #     enumerate_keys
 original_imports = set(sys.modules.keys())
+k = 'foo'
+v = 'bar'
 
 
 # Mock Redis client to use for testing.
@@ -53,7 +55,8 @@ class MockRedisClient:
 # test setup in order to reapply a different mock.
 # https://github.com/pytest-dev/pytest-mock/issues/161
 @pytest.fixture(autouse=True)
-def cleanup():
+def cleanup(monkeypatch):
+    monkeypatch.setenv('REDIS_URL', 'something')
     current_imports = set(sys.modules.keys())
     for key in current_imports - original_imports:
         del sys.modules[key]
@@ -67,48 +70,80 @@ def invalid_client(*args, **kwargs):
     return MockRedisClient(should_fail=True)
 
 
-def test_store_post_successfully(monkeypatch, mocker):
+def test_store_post_successfully(mocker):
     import redis
     from redis_connector import store_post_from_server
-    monkeypatch.setenv('REDIS_URL', 'something')
     mocker.patch.object(redis, 'from_url', valid_client)
 
-    res = store_post_from_server('foo', 'bar')
-    assert res
+    assert store_post_from_server(k, v)
 
 
-def test_store_post_successfully_with_logging(monkeypatch, mocker):
+def test_store_post_successfully_with_logging(mocker):
     import redis
     from redis_connector import store_post_from_server
-    monkeypatch.setenv('REDIS_URL', 'something')
     mocker.patch.object(redis, 'from_url', valid_client)
 
     logger = MockLogger()
-    res = store_post_from_server('foo', 'bar', logger)
-    assert res
+    assert store_post_from_server(k, v, logger)
     assert len(logger.info_messages) == 1
     assert logger.info_messages[0] == 'Successfully persisted foo -> bar to Redis'
     assert len(logger.warn_messages) == 0
 
 
-def test_store_post_fails(monkeypatch, mocker):
+def test_store_post_fails(mocker):
     import redis
     from redis_connector import store_post_from_server
-    monkeypatch.setenv('REDIS_URL', 'something')
     mocker.patch.object(redis, 'from_url', invalid_client)
-    res = store_post_from_server('foo', 'bar')
-    assert not res
+    assert not store_post_from_server(k, v)
 
 
-def test_store_post_fails_with_logging(monkeypatch, mocker):
+def test_store_post_fails_with_logging(mocker):
     import redis
     from redis_connector import store_post_from_server
-    monkeypatch.setenv('REDIS_URL', 'something')
     mocker.patch.object(redis, 'from_url', invalid_client)
 
     logger = MockLogger()
-    res = store_post_from_server('foo', 'bar', logger)
-    assert not res
+    assert not store_post_from_server(k, v, logger)
     assert len(logger.warn_messages) == 1
-    assert logger.warn_messages[0] == 'Failed to persist foo -> bar to Redis'
+    assert logger.warn_messages[0] == f'Failed to persist {k} -> {v} to Redis'
     assert len(logger.info_messages) == 0
+
+
+def test_accurately_finds_post_already_used(mocker):
+    import redis
+    from redis_connector import post_already_used, store_post_from_server
+    mocker.patch.object(redis, 'from_url', valid_client)
+
+    store_post_from_server(k, v)
+    assert post_already_used(k)
+
+
+def test_accurately_finds_post_already_used_with_logging(mocker):
+    import redis
+    from redis_connector import post_already_used, store_post_from_server
+    mocker.patch.object(redis, 'from_url', valid_client)
+
+    logger = MockLogger()
+    store_post_from_server(k, v)
+    assert post_already_used(k, logger)
+    assert len(logger.info_messages) == 1
+    assert logger.info_messages[0] == f'Found {k} already in Redis'
+
+
+def test_accurately_does_not_find_unused_post(mocker):
+    import redis
+    from redis_connector import post_already_used
+    mocker.patch.object(redis, 'from_url', valid_client)
+
+    assert not post_already_used(k)
+    
+
+def test_accurately_does_not_find_unused_post_with_logging(mocker):
+    import redis
+    from redis_connector import post_already_used
+    mocker.patch.object(redis, 'from_url', valid_client)
+
+    logger = MockLogger()
+    assert not post_already_used(k, logger)
+    assert len(logger.info_messages) == 1
+    assert logger.info_messages[0] == f'Key {k} not currently in Redis'
