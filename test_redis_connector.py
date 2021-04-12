@@ -1,13 +1,14 @@
 # Tests that cover the Redis integration
-from typing import Optional
 from mock_logger import MockLogger
-import redis
+from typing import Optional
+import sys
 import pytest
-from redis_connector import store_post_from_server, \
-    flush_all_records, \
-    get_value, \
-    post_already_used, \
-    enumerate_keys
+# from redis_connector import store_post_from_server, \
+#     flush_all_records, \
+#     get_value, \
+#     post_already_used, \
+#     enumerate_keys
+original_imports = set(sys.modules.keys())
 
 
 # Mock Redis client to use for testing.
@@ -47,35 +48,67 @@ class MockRedisClient:
             return None
 
 
-def invalid_client(*args, **kwargs):
-    return MockRedisClient(should_fail=True)
+# The things that get mocked, such as `redis` are cached
+# by Python import magic, and need to be removed in each
+# test setup in order to reapply a different mock.
+# https://github.com/pytest-dev/pytest-mock/issues/161
+@pytest.fixture(autouse=True)
+def cleanup():
+    current_imports = set(sys.modules.keys())
+    for key in current_imports - original_imports:
+        del sys.modules[key]
 
 
 def valid_client(*args, **kwargs):
     return MockRedisClient()
 
 
-@pytest.fixture
-def mock_invalid_client(monkeypatch):
-    monkeypatch.setenv('REDIS_URL', 'something')
-    monkeypatch.setattr(redis, "from_url", invalid_client)
+def invalid_client(*args, **kwargs):
+    return MockRedisClient(should_fail=True)
 
 
-def test_store_post_successfully(monkeypatch):
+def test_store_post_successfully(monkeypatch, mocker):
+    import redis
+    from redis_connector import store_post_from_server
     monkeypatch.setenv('REDIS_URL', 'something')
-    monkeypatch.setattr(redis, "from_url", valid_client)
+    mocker.patch.object(redis, 'from_url', valid_client)
 
     res = store_post_from_server('foo', 'bar')
     assert res
 
 
-def test_store_post_successfully_with_logging(monkeypatch):
+def test_store_post_successfully_with_logging(monkeypatch, mocker):
+    import redis
+    from redis_connector import store_post_from_server
     monkeypatch.setenv('REDIS_URL', 'something')
-    monkeypatch.setattr(redis, "from_url", valid_client)
-    
+    mocker.patch.object(redis, 'from_url', valid_client)
+
     logger = MockLogger()
     res = store_post_from_server('foo', 'bar', logger)
     assert res
-    assert len(logger.info_messages) > 0
+    assert len(logger.info_messages) == 1
+    assert logger.info_messages[0] == 'Successfully persisted foo -> bar to Redis'
     assert len(logger.warn_messages) == 0
 
+
+def test_store_post_fails(monkeypatch, mocker):
+    import redis
+    from redis_connector import store_post_from_server
+    monkeypatch.setenv('REDIS_URL', 'something')
+    mocker.patch.object(redis, 'from_url', invalid_client)
+    res = store_post_from_server('foo', 'bar')
+    assert not res
+
+
+def test_store_post_fails_with_logging(monkeypatch, mocker):
+    import redis
+    from redis_connector import store_post_from_server
+    monkeypatch.setenv('REDIS_URL', 'something')
+    mocker.patch.object(redis, 'from_url', invalid_client)
+
+    logger = MockLogger()
+    res = store_post_from_server('foo', 'bar', logger)
+    assert not res
+    assert len(logger.warn_messages) == 1
+    assert logger.warn_messages[0] == 'Failed to persist foo -> bar to Redis'
+    assert len(logger.info_messages) == 0

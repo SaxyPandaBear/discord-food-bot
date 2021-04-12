@@ -9,10 +9,14 @@ import redis
 import logging
 
 
+# Long-lived Redis client
 r = None
 
 
+# Wrap initialization of the Redis client here, in order to properly
+# mock the Redis client in unit tests
 def init():
+    global r
     r = redis.from_url(os.environ['REDIS_URL'], decode_responses=True)
 
 
