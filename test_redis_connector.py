@@ -3,11 +3,8 @@ from mock_logger import MockLogger
 from typing import Optional
 import sys
 import pytest
-# from redis_connector import store_post_from_server, \
-#     flush_all_records, \
-#     get_value, \
-#     post_already_used, \
-#     enumerate_keys
+
+
 original_imports = set(sys.modules.keys())
 k = 'foo'
 v = 'bar'
@@ -75,14 +72,6 @@ def test_store_post_successfully(mocker):
     from redis_connector import store_post_from_server
     mocker.patch.object(redis, 'from_url', valid_client)
 
-    assert store_post_from_server(k, v)
-
-
-def test_store_post_successfully_with_logging(mocker):
-    import redis
-    from redis_connector import store_post_from_server
-    mocker.patch.object(redis, 'from_url', valid_client)
-
     logger = MockLogger()
     assert store_post_from_server(k, v, logger)
     assert len(logger.info_messages) == 1
@@ -91,13 +80,6 @@ def test_store_post_successfully_with_logging(mocker):
 
 
 def test_store_post_fails(mocker):
-    import redis
-    from redis_connector import store_post_from_server
-    mocker.patch.object(redis, 'from_url', invalid_client)
-    assert not store_post_from_server(k, v)
-
-
-def test_store_post_fails_with_logging(mocker):
     import redis
     from redis_connector import store_post_from_server
     mocker.patch.object(redis, 'from_url', invalid_client)
@@ -114,31 +96,14 @@ def test_accurately_finds_post_already_used(mocker):
     from redis_connector import post_already_used, store_post_from_server
     mocker.patch.object(redis, 'from_url', valid_client)
 
-    store_post_from_server(k, v)
-    assert post_already_used(k)
-
-
-def test_accurately_finds_post_already_used_with_logging(mocker):
-    import redis
-    from redis_connector import post_already_used, store_post_from_server
-    mocker.patch.object(redis, 'from_url', valid_client)
-
     logger = MockLogger()
     store_post_from_server(k, v)
     assert post_already_used(k, logger)
     assert len(logger.info_messages) == 1
     assert logger.info_messages[0] == f'Found {k} already in Redis'
-
-
-def test_accurately_does_not_find_unused_post(mocker):
-    import redis
-    from redis_connector import post_already_used
-    mocker.patch.object(redis, 'from_url', valid_client)
-
-    assert not post_already_used(k)
     
 
-def test_accurately_does_not_find_unused_post_with_logging(mocker):
+def test_accurately_does_not_find_unused_post(mocker):
     import redis
     from redis_connector import post_already_used
     mocker.patch.object(redis, 'from_url', valid_client)
@@ -147,3 +112,23 @@ def test_accurately_does_not_find_unused_post_with_logging(mocker):
     assert not post_already_used(k, logger)
     assert len(logger.info_messages) == 1
     assert logger.info_messages[0] == f'Key {k} not currently in Redis'
+
+
+def test_flush_all_records_succeeds(mocker):
+    pass
+
+
+def test_flush_all_records_fails(mocker):
+    pass
+
+
+def test_enumerate_keys_succeeds(mocker):
+    pass
+
+
+def test_enumerate_keys_fails(mocker):
+    pass
+
+
+def test_get_value(mocker):
+    pass
