@@ -8,11 +8,18 @@ from typing import Optional
 import redis
 import logging
 
-r = redis.from_url(os.environ['REDIS_URL'], decode_responses=True)
+
+r = None
+
+
+def init():
+    r = redis.from_url(os.environ['REDIS_URL'], decode_responses=True)
 
 
 # store the post_id, and the server it's associated with
 def store_post_from_server(post_id: str, server: str, logger: Optional[logging.Logger] = None) -> bool:
+    if r is None:
+        init()
     res = r.set(post_id, server)
     if logger is not None:
         if res:
@@ -24,6 +31,8 @@ def store_post_from_server(post_id: str, server: str, logger: Optional[logging.L
 
 # check if a key is already persisted in Redis
 def post_already_used(post_id: str, logger: Optional[logging.Logger] = None) -> bool:
+    if r is None:
+        init()
     res = r.exists(post_id) > 0
     if logger is not None:
         if res:
@@ -35,6 +44,8 @@ def post_already_used(post_id: str, logger: Optional[logging.Logger] = None) -> 
 
 # delete all of the keys stored in Redis
 def flush_all_records(logger: Optional[logging.Logger] = None):
+    if r is None:
+        init()
     res = r.flushall(asynchronous=False)
     if logger is not None:
         if res:
@@ -46,6 +57,8 @@ def flush_all_records(logger: Optional[logging.Logger] = None):
 # for debugging purposes only, print all of the existing
 # keys stored in Redis
 def enumerate_keys(logger: logging.Logger) -> bool:
+    if r is None:
+        init()
     try:
         res = r.keys()
         logger.info(', '.join(res))
@@ -58,4 +71,6 @@ def enumerate_keys(logger: logging.Logger) -> bool:
 # for debugging purposes only, get the server associated
 # with a Reddit submission ID
 def get_value(post_id: str) -> Optional[str]:
+    if r is None:
+        init()
     return r.get(post_id)

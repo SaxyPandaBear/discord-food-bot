@@ -1,2 +1,2 @@
 [run]
-omit = test_*.py
+omit = test_*.py,bootstrap.py,help_commands.py,mock_logger.py
