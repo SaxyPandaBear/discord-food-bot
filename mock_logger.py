@@ -18,3 +18,11 @@ class MockLogger:
 
     def error(self, msg: str):
         self.error_messages.append(msg)
+
+    # Flush all of the log messages so the mock logger
+    # can be used fresh for each test execution, without
+    # always creating a new logger object for each test case
+    def flush(self) -> None:
+        self.info_messages.clear()
+        self.warn_messages.clear()
+        self.error_messages.clear()
