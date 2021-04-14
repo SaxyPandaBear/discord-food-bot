@@ -8,6 +8,8 @@ from typing import Optional
 import redis
 import logging
 
+
+# Long-lived Redis client
 r = redis.from_url(os.environ['REDIS_URL'], decode_responses=True)
 
 
@@ -34,13 +36,14 @@ def post_already_used(post_id: str, logger: Optional[logging.Logger] = None) -> 
 
 
 # delete all of the keys stored in Redis
-def flush_all_records(logger: Optional[logging.Logger] = None):
+def flush_all_records(logger: Optional[logging.Logger] = None) -> bool:
     res = r.flushall(asynchronous=False)
     if logger is not None:
         if res:
             logger.info('Successfully flushed all keys in Redis')
         else:
             logger.warn('Did not successfully flush all keys in Redis')
+    return res
 
 
 # for debugging purposes only, print all of the existing
