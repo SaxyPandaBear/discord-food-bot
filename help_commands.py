@@ -28,11 +28,11 @@ def help_bot_restart() -> str:
 
 
 def help_bot_list_keys() -> str:
-    return 'The bot enumerates all of the current keys stored in Redis,' \
+    return 'The bot enumerates all of the current keys stored in Redis, ' \
            'printing the values to the logger for debugging. *Administrator Only*'
 
 
 def help_bot_fetch_value_from_redis() -> str:
-    return 'The bot fetches the server that is associated with a Reddit post,' \
-           'whose ID is stored in the Redis cache. Note that the "all" value' \
+    return 'The bot fetches the server that is associated with a Reddit post, ' \
+           'whose ID is stored in the Redis cache. Note that the "all" value ' \
            'means it was posted during the scheduled loop event. *Administrator Only*'

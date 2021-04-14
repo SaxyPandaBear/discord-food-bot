@@ -1,5 +1,7 @@
-Food Waifu
-===========
+discord-food-bot
+================
+
+![ci](https://github.com/SaxyPandaBear/discord-food-bot/actions/workflows/main.yml/badge.svg) [![codecov](https://codecov.io/gh/SaxyPandaBear/discord-food-bot/branch/master/graph/badge.svg?token=GSDBRQNE4P)](https://codecov.io/gh/SaxyPandaBear/discord-food-bot)
 
 Discord bot that posts a picture of food once an hour to all of the 
 connected Discord servers. This feature is done in the background,
@@ -26,6 +28,23 @@ any subreddit that primarily has picture posts (i.e.: art subreddits).
 `!food search [query]` takes in a search query and returns the first, most relevant result *that is not a duplicate*.
  
  `!food clear` flushes the Redis cache, allowing all previously posted content that is persisted to Redis to be posted again.
+
+## Post Deduplication
+Currently this is deployed on Heroku, and utilizes Heroku Redis in order to 
+store the Reddit IDs that are posted. This is used as a LRU cache, such that 
+the oldest ID gets evicted when the cache is at capacity. This helps for 
+deduplication, because the newer post will evict a post that has been posted 
+a while ago (hopefully). The data is stored in Redis in this pattern:
+```
+abc123 -> discord_server1
+bcd234 -> all
+cde345 -> discord_server2
+```
+In this way, we can store somewhat useful information on which Discord server
+each Reddit post is sent to. The `all` value denotes that the given Reddit ID is
+sent to all of the Discord servers via the scheduled event loop task.
+
+See `redis_connector.store_post_from_server` and its usages.
 
 ## Setup
 
@@ -57,8 +76,20 @@ These files can be auto generated using the `bootstrap.sh` script
 
 For example: for a subreddit /r/FooBar, the entry in the text file would simply be `foobar`
 
-## Deduplication of Reddit posts
-On Heroku, we use the provided Redis cache to persist Reddit posts by their
-unique ID, and the Discord server ID where the post was sent to.
+## Developing
+When adding new features, make sure that you cover tests and linting locally
+to save yourself the trouble of it failing in the CICD pipeline.
 
-See `redis_connector.store_post_from_server` and its usages.
+### Testing
+```
+pytest
+```
+
+### Linting
+```
+# Syntax errors
+flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+# Lint warnings
+flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude auths.py
+```

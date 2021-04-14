@@ -1,9 +1,9 @@
 # Purpose of this script is to read
 # environment variables, in order to
-# create the auths.py file, and the 
+# create the auths.py file, and the
 # subreddits.txt file necessary to run
 # the app.
-# This is mainly to bootstrap for 
+# This is mainly to bootstrap for
 # Heroku deployments
 # Usage: python bootstrap.py --commit
 # '--commit': add the --commit in order to
@@ -19,16 +19,16 @@ subs_file_name = "subreddits.txt"
 
 
 def main():
-    # Read os.environ in order to get all of the 
+    # Read os.environ in order to get all of the
     # necessary environment variables:
     # 1. SUBREDDITS -> comma delimited list of subreddits
     # 2. REDDIT_CLIENT_ID
     # 3. REDDIT_CLIENT_SECRET
     # 4. DISCORD_TOKEN
     if "SUBREDDITS" not in os.environ or \
-        "REDDIT_CLIENT_ID" not in os.environ or \
-        "REDDIT_CLIENT_SECRET" not in os.environ or \
-        "DISCORD_TOKEN" not in os.environ:
+            "REDDIT_CLIENT_ID" not in os.environ or \
+            "REDDIT_CLIENT_SECRET" not in os.environ or \
+            "DISCORD_TOKEN" not in os.environ:
         print('Missing required parameters to bootstrap application')
         sys.exit(1)
     else:
