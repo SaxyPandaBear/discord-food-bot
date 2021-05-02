@@ -1,0 +1,19 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+"discord.py" = "==1.6.0"
+flake8 = "==3.9.0"
+praw = "==6.2.0"
+prawcore = "==1.0.1"
+pytest = "==6.2.3"
+pytest-cov = "==2.11.1"
+pytest-mock = "==3.5.1"
+redis = "==3.5.3"
+
+[requires]
+python_version = "3.7"
