@@ -48,7 +48,7 @@ See `redis_connector.store_post_from_server` and its usages.
 
 ## Setup
 
-- Python 3.6.3
+- Python <= 3.7 (The pipfile installation breaks for 3.8+)
 - [discord.py](https://github.com/Rapptz/discord.py) 1.6.0
 - [PRAW](https://praw.readthedocs.io/en/latest/index.html) 6.2.0
 - [redis](https://github.com/andymccurdy/redis-py) 3.5.3
